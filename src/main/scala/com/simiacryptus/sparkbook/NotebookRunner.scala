@@ -27,14 +27,11 @@ import java.util.regex.Pattern
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
-import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{S3Util, SESUtil, Tendril}
-import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.NotebookOutput
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 trait NotebookRunner extends WorkerImpl {
-  def nodeSettings: EC2NodeSettings
   def s3bucket: String
   def emailAddress: String
   def fns: Array[Tendril.SerializableConsumer[NotebookOutput]]

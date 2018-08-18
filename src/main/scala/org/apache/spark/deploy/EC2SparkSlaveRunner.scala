@@ -20,6 +20,7 @@
 package org.apache.spark.deploy
 
 import java.io.{File, FileOutputStream}
+import java.nio.charset.Charset
 import java.util
 import java.util.zip.ZipFile
 
@@ -74,19 +75,22 @@ class EC2SparkSlaveRunner
     try {
       EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
       new File("assembly/target/scala-2.11/jars").listFiles().foreach(file=>{
-        logger.info(s"Deleting $file")
+        //logger.info(s"Deleting $file")
         file.delete()
       })
       new File("lib").listFiles().foreach(file=>{
         val dest = new File("assembly/target/scala-2.11/jars", file.getName)
-        logger.info(s"Copy $file to $dest")
+        //logger.info(s"Copy $file to $dest")
         FileUtils.copyFile(file, dest)
       })
       System.setProperty("spark.executor.extraClassPath",new File(".").getAbsolutePath+"/lib/*.jar")
       System.setProperty("spark.executor.memory",memory)
+      properties.foreach(e => System.setProperty(e._1, e._2))
+      FileUtils.write(new File("conf/spark-defaults.conf"), properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
       org.apache.spark.deploy.worker.Worker.main(Array(
         "--webui-port", uiPort.toString,
         "--port", workerPort.toString,
+        "--memory", memory,
         master
       ))
       logger.info(s"Slave init to $master running on ${new File(".").getAbsolutePath}")

@@ -23,21 +23,22 @@ import java.util.UUID
 
 import com.simiacryptus.aws.Tendril
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
 object EC2SparkTest extends EC2SparkNotebookRunner(
   nodeSettings = EC2NodeSettings.StandardJavaAMI,
-  numberOfWorkers = 1,
   klass = classOf[SparkTest]
 ) {
-  override def JAVA_OPTS = " -Xmx4g"
+  override def numberOfWorkerNodes: Int = 2
+
+  override def driverMemory: String = "16g"
+
+  override def workerMemory: String = "8g"
 }
 
-object LocalSparkTest extends LocalRunner(classOf[SparkTest]) {
-}
+object LocalSparkTest extends LocalRunner(classOf[SparkTest])
 
 class SparkTest extends Tendril.SerializableConsumer[NotebookOutput]() {
   override def accept(log: NotebookOutput): Unit = {

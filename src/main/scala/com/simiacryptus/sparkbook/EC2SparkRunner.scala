@@ -24,13 +24,19 @@ import java.io.File
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
-import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.ScalaJson
 
-abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings, workerNodeSettings: EC2NodeSettings, numberOfWorkers: Int) extends WorkerImpl with Logging {
+abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings,
+                              workerNodeSettings: EC2NodeSettings
+                             ) extends WorkerImpl with Logging {
 
-  def JAVA_OPTS = " -Xmx50g"
+  def numberOfWorkerNodes: Int = 1
 
+  def numberOfWorkersPerNode: Int = 1
+
+  def driverMemory: String = "7g"
+
+  def workerMemory: String = "6g"
   var emailAddress = ""
   var s3bucket = ""
   var emailFiles = false
@@ -40,6 +46,7 @@ abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings, workerNodeSet
   }
 
   lazy val envSettings = init()
+
   def init(): AwsTendrilEnvSettings = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     s3bucket = envSettings.bucket
@@ -53,15 +60,15 @@ abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings, workerNodeSet
   def launch(): Unit = {
     envSettings.bucket // init
     val properties = Map(
-      "s3bucket" -> envSettings.bucket
+      "s3bucket" -> envSettings.bucket,
+      "spark.executor.memory" -> workerMemory
     )
-    val (master, masterControl) = new org.apache.spark.deploy.EC2SparkMasterRunner(masterNodeSettings).start()
+    val (master, masterControl) = new org.apache.spark.deploy.EC2SparkMasterRunner(nodeSettings = masterNodeSettings, memory = driverMemory, properties = properties).start()
     masterUrl = "spark://" + master.getStatus.getPublicDnsName + ":7077"
     EC2Runner.browse(master, 8080)
-    val workers = (1 to numberOfWorkers).par.map(i => {
-      logger.info(s"Starting worker #$i/$numberOfWorkers")
-      val tuple = new org.apache.spark.deploy.EC2SparkSlaveRunner(workerNodeSettings, masterUrl, properties = properties).start()
-      tuple
+    val workers = (1 to numberOfWorkerNodes).par.map(i => {
+      logger.info(s"Starting worker #$i/$numberOfWorkerNodes")
+      new org.apache.spark.deploy.EC2SparkSlaveRunner(workerNodeSettings, masterUrl, properties = properties, memory = workerMemory).start()
     }).toList
     try {
       masterControl.execute(this)
@@ -74,8 +81,8 @@ abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings, workerNodeSet
   }
 
   override def initWorker(): Unit = {
-    System.setProperty("spark.master",masterUrl)
-    System.setProperty("spark.app.name","default")
+    System.setProperty("spark.master", masterUrl)
+    System.setProperty("spark.app.name", "default")
   }
 
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {

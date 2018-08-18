@@ -19,12 +19,15 @@
 
 package org.apache.spark.deploy
 
+import java.io.File
 import java.net.InetAddress
+import java.nio.charset.Charset
 import java.util
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril}
 import com.simiacryptus.sparkbook.{EC2Runner, Logging}
+import org.apache.commons.io.FileUtils
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
@@ -50,8 +53,13 @@ case class EC2SparkMasterRunner
   nodeSettings: EC2NodeSettings,
   controlPort: Int = 7077,
   uiPort: Int = 8080,
-  hostname: String = InetAddress.getLocalHost.getHostName
+  hostname: String = InetAddress.getLocalHost.getHostName,
+  memory: String = "4g",
+  properties: Map[String, String] = Map.empty
 ) extends EC2Runner(nodeSettings) with Logging {
+
+  override def JAVA_OPTS: String = s"-Xmx$memory"
+
   override def command(node: EC2Util.EC2Node): Tendril.SerializableRunnable = {
     this.copy(hostname = node.getStatus.getPublicDnsName)
   }
@@ -59,15 +67,17 @@ case class EC2SparkMasterRunner
     try {
       EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
       logger.info("Hostname: " + hostname)
+      val master = s"spark://$hostname:$controlPort"
+      logger.info("Spark master = " + master)
+      System.setProperty("spark.master", master)
+      System.setProperty("spark.app.name", "default")
+      properties.foreach(e => System.setProperty(e._1, e._2))
+      FileUtils.write(new File("conf/spark-defaults.conf"), properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
       org.apache.spark.deploy.master.Master.main(Array(
         "--host", hostname,
         "--port", controlPort.toString,
         "--webui-port", uiPort.toString
       ))
-      val master = s"spark://$hostname:$controlPort"
-      logger.info("Spark master = " + master)
-      System.setProperty("spark.master", master)
-      System.setProperty("spark.app.name", "default")
       //SparkContext.setActiveContext(SparkContext.getOrCreate(new SparkConf().setMaster(master).setAppName("default")),false)
       EC2SparkMasterRunner.joinAll()
     } catch {

@@ -24,6 +24,8 @@ import com.simiacryptus.aws.Tendril.SerializableConsumer
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.util.io.NotebookOutput
 
-class EC2SparkNotebookRunner(val nodeSettings: EC2NodeSettings,numberOfWorkers: Int, val fns: Array[Tendril.SerializableConsumer[NotebookOutput]]) extends EC2SparkRunner(nodeSettings,nodeSettings,numberOfWorkers) with NotebookRunner {
-  def this(nodeSettings: EC2NodeSettings, numberOfWorkers: Int, klass: Class[_ <: SerializableConsumer[_]]) = this(nodeSettings, numberOfWorkers, Array(LocalRunner.getTask(klass)) )
+class EC2SparkNotebookRunner(val masterSettings: EC2NodeSettings, val workerSettings: EC2NodeSettings, val fns: Array[Tendril.SerializableConsumer[NotebookOutput]]) extends EC2SparkRunner(masterSettings, workerSettings) with NotebookRunner {
+  def this(nodeSettings: EC2NodeSettings, klass: Class[_ <: SerializableConsumer[_]]) = this(nodeSettings, nodeSettings, Array(LocalRunner.getTask(klass)))
+
+  def this(masterSettings: EC2NodeSettings, workerSettings: EC2NodeSettings, klass: Class[_ <: SerializableConsumer[_]]) = this(masterSettings, workerSettings, Array(LocalRunner.getTask(klass)))
 }

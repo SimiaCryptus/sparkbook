@@ -22,12 +22,12 @@ package org.apache.spark.deploy
 import java.net.InetAddress
 import java.util
 
+import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril}
-import com.simiacryptus.sparkbook.{EC2NodeSettings, EC2Runner, Logging}
+import com.simiacryptus.sparkbook.{EC2Runner, Logging}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
-import org.apache.spark.{SparkConf, SparkContext}
 object EC2SparkMasterRunner {
   def joinAll ()= {
     val currentThread = Thread.currentThread()

@@ -19,15 +19,11 @@
 
 package com.simiacryptus.sparkbook
 
-import java.util.UUID
-
 import com.simiacryptus.aws.Tendril
+import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.util.io.{JsonUtil, NotebookOutput}
-import Java8Util._
-import org.apache.spark.SparkContext
-import org.apache.spark.rdd.RDD
 
-object EC2Test extends EC2NotebookRunner(StandardJavaAMI, classOf[SparkTest]) {
+object EC2Test extends EC2NotebookRunner(EC2NodeSettings.StandardJavaAMI, classOf[SparkTest]) {
   override def JAVA_OPTS = " -Xmx4g -Dspark.master=local:4"
 }
 

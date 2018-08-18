@@ -20,14 +20,11 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
-import java.net.URI
-import java.util.Random
 
-import com.simiacryptus.aws._
-import Java8Util._
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
+import com.simiacryptus.aws._
+import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.util.io.ScalaJson
-import org.apache.spark.SparkContext
 
 class EC2SparkTendril {
   def main(args: Array[String]): Unit = {

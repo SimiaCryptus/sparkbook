@@ -22,14 +22,12 @@ package com.simiacryptus.sparkbook
 import java.util.UUID
 
 import com.simiacryptus.aws.Tendril
+import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import Java8Util._
 
-import scala.collection.JavaConverters._
-
-object EC2SparkTest extends EC2SparkNotebookRunner(StandardJavaAMI, 1, classOf[SparkTest]) {
+object EC2SparkTest extends EC2SparkNotebookRunner(EC2NodeSettings.StandardJavaAMI, 1, classOf[SparkTest]) {
   override def JAVA_OPTS = " -Xmx4g"
 }
 

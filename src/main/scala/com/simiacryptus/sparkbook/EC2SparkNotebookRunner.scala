@@ -21,6 +21,7 @@ package com.simiacryptus.sparkbook
 
 import com.simiacryptus.aws.Tendril
 import com.simiacryptus.aws.Tendril.SerializableConsumer
+import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.util.io.NotebookOutput
 
 class EC2SparkNotebookRunner(val nodeSettings: EC2NodeSettings,numberOfWorkers: Int, val fns: Array[Tendril.SerializableConsumer[NotebookOutput]]) extends EC2SparkRunner(nodeSettings,nodeSettings,numberOfWorkers) with NotebookRunner {

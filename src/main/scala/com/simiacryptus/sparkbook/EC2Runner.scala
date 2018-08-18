@@ -21,25 +21,21 @@ package com.simiacryptus.sparkbook
 
 import java.awt.{Desktop, GraphicsEnvironment}
 import java.io.{File, IOException}
-import java.net.{URI, URISyntaxException, URL}
+import java.net.URI
 import java.util
-import java.util.regex.Pattern
-import java.util.{Date, Random}
+import java.util.Random
 
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, AmazonIdentityManagementClientBuilder}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
-import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.simiacryptus.aws._
+import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.util.Util
-import Java8Util._
-import com.simiacryptus.aws.Tendril.SerializableConsumer
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.CodeUtil
 import com.simiacryptus.util.test.SysOutInterceptor
-import org.apache.commons.io.{FileUtils, IOUtils}
 import org.slf4j.LoggerFactory
 
 /**
@@ -140,7 +136,8 @@ object EC2Runner {
 
 
 }
-import EC2Runner._
+
+import com.simiacryptus.sparkbook.EC2Runner._
 
 abstract class EC2Runner(nodeSettings: EC2NodeSettings) extends Tendril.SerializableRunnable {
   def JAVA_OPTS = " -Xmx50g -Dspark.master=local:4"

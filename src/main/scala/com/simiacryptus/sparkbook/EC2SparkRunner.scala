@@ -24,19 +24,8 @@ import java.io.File
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
+import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.ScalaJson
-
-class EC2SparkTendril {
-  def main(args: Array[String]): Unit = {
-
-  }
-}
-
-trait WorkerImpl extends Tendril.SerializableRunnable {
-
-  def initWorker(): Unit = {}
-
-}
 
 abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings, workerNodeSettings: EC2NodeSettings, numberOfWorkers: Int) extends WorkerImpl with Logging {
 
@@ -59,7 +48,7 @@ abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings, workerNodeSet
     envSettings
   }
 
-  var masterUrl = "local:4"
+  var masterUrl = "local[4]"
 
   def launch(): Unit = {
     envSettings.bucket // init

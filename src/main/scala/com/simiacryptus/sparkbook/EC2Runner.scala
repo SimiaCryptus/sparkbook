@@ -32,6 +32,7 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
+import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.CodeUtil

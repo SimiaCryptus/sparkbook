@@ -20,32 +20,9 @@
 package com.simiacryptus.sparkbook
 
 import com.simiacryptus.aws.Tendril
-import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.io.{JsonUtil, NotebookOutput}
 
-object EC2Test extends EC2NotebookRunner(EC2NodeSettings.StandardJavaAMI, classOf[SparkTest]) {
-  override def JAVA_OPTS = " -Xmx4g -Dspark.master=local:4"
-}
+trait WorkerImpl extends Tendril.SerializableRunnable {
 
-object LocalTest extends LocalRunner(classOf[SimpleTest]) {
+  def initWorker(): Unit = {}
 
 }
-
-class SimpleTest extends Tendril.SerializableConsumer[NotebookOutput]() {
-  override def accept(log: NotebookOutput): Unit = {
-    log.eval(()=>{
-      "Hello World!"
-    })
-    log.eval(()=>{
-      JsonUtil.toJson(System.getProperties)
-    })
-    for(i <- 1 to 1000) {
-      log.run(()=>{
-        Thread.sleep(1000)
-      })
-    }
-  }
-}
-
-

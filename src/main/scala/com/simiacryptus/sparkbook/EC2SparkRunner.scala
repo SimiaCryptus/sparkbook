@@ -24,6 +24,7 @@ import java.io.File
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
+import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.ScalaJson
 
 abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings,

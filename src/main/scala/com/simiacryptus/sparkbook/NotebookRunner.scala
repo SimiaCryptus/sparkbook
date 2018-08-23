@@ -28,6 +28,7 @@ import java.util.regex.Pattern
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.simiacryptus.aws.{S3Util, SESUtil, Tendril}
+import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.NotebookOutput
 import org.apache.commons.io.{FileUtils, IOUtils}
 

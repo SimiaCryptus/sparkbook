@@ -23,6 +23,7 @@ import java.util.UUID
 
 import com.simiacryptus.aws.Tendril
 import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD

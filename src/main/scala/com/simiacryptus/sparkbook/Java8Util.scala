@@ -19,10 +19,9 @@
 
 package com.simiacryptus.sparkbook
 
-import java.util.function.{BiFunction, BinaryOperator, Consumer, DoubleSupplier, DoubleUnaryOperator, Function, IntToDoubleFunction, IntUnaryOperator, Predicate, Supplier, ToDoubleBiFunction, ToDoubleFunction}
+import java.util.function.{BiFunction, BinaryOperator, DoubleSupplier, DoubleUnaryOperator, Function, IntToDoubleFunction, IntUnaryOperator, Predicate, Supplier, ToDoubleBiFunction, ToDoubleFunction}
 
-import com.simiacryptus.aws.Tendril.{SerializableConsumer, SerializableRunnable}
-import com.simiacryptus.util.lang.UncheckedSupplier
+import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable, UncheckedSupplier}
 
 object Java8Util {
 

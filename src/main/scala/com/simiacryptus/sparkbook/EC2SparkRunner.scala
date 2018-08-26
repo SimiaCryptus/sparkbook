@@ -26,11 +26,13 @@ import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.ScalaJson
+import com.simiacryptus.util.lang.SerializableRunnable
+import org.apache.spark.deploy.EC2SparkMasterRunner
 
-abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings,
-                              workerNodeSettings: EC2NodeSettings
-                             ) extends WorkerImpl with Logging {
+trait EC2SparkRunner extends SerializableRunnable with Logging {
+  def masterSettings: EC2NodeSettings
 
+  def workerSettings: EC2NodeSettings
   def numberOfWorkerNodes: Int = 1
 
   def numberOfWorkersPerNode: Int = 1
@@ -60,16 +62,28 @@ abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings,
 
   def launch(): Unit = {
     envSettings.bucket // init
-    val properties = Map(
+    val javaProperties = Map(
       "s3bucket" -> envSettings.bucket,
-      "spark.executor.memory" -> workerMemory
+      "spark.executor.memory" -> workerMemory,
+      "spark.master" -> masterUrl,
+      "spark.app.name" -> getClass.getCanonicalName
     )
-    val (master, masterControl) = new org.apache.spark.deploy.EC2SparkMasterRunner(nodeSettings = masterNodeSettings, memory = driverMemory, properties = properties).start()
+
+    val masterRunner = new EC2SparkMasterRunner(masterSettings) {
+      override def memory = driverMemory
+
+      override def properties = javaProperties
+    }
+    val (master, masterControl) = masterRunner.start()
     masterUrl = "spark://" + master.getStatus.getPublicDnsName + ":7077"
     EC2Runner.browse(master, 8080)
     val workers = (1 to numberOfWorkerNodes).par.map(i => {
       logger.info(s"Starting worker #$i/$numberOfWorkerNodes")
-      new org.apache.spark.deploy.EC2SparkSlaveRunner(workerNodeSettings, masterUrl, properties = properties, memory = workerMemory).start()
+      new org.apache.spark.deploy.EC2SparkSlaveRunner(masterUrl, workerSettings) {
+        override def memory: String = workerMemory
+
+        override def properties: Map[String, String] = javaProperties
+      }.start()
     }).toList
     try {
       masterControl.execute(this)
@@ -81,15 +95,10 @@ abstract class EC2SparkRunner(masterNodeSettings: EC2NodeSettings,
     }
   }
 
-  override def initWorker(): Unit = {
-    System.setProperty("spark.master", masterUrl)
-    System.setProperty("spark.app.name", "default")
-  }
-
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {
     to.instanceType = from.machineType
-    to.imageId = masterNodeSettings.imageId
-    to.username = masterNodeSettings.username
+    to.imageId = masterSettings.imageId
+    to.username = masterSettings.username
     to
   }
 

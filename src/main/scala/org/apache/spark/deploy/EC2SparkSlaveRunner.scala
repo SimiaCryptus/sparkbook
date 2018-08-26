@@ -27,10 +27,11 @@ import java.util.zip.ZipFile
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
-import com.simiacryptus.aws.EC2Util
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook._
 import org.apache.commons.io.{FileUtils, IOUtils}
+
+import scala.collection.JavaConverters._
 
 object EC2SparkSlaveRunner extends Logging {
   def stageZip(request: GetObjectRequest, stagingName: String = "temp.zip", localRoot: File = new File(".").getAbsoluteFile): Boolean = {
@@ -61,15 +62,29 @@ object EC2SparkSlaveRunner extends Logging {
   }
 
 }
-class EC2SparkSlaveRunner
-(
-  nodeSettings: EC2NodeSettings,
-  master: String,
-  workerPort: Int = 7076,
-  uiPort: Int = 8080,
-  memory: String = "4g",
-  properties: Map[String,String] = Map.empty
-) extends EC2Runner(nodeSettings) with Logging {
+
+class EC2SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings) extends EC2Runner with Logging {
+  def workerPort: Int = 7076
+
+  def uiPort: Int = 8080
+
+  def memory: String = "4g"
+
+  def properties: Map[String, String] = Map.empty
+
+  override def main(args: Array[String]): Unit = {
+    EC2Runner.launch(
+      nodeSettings = nodeSettings,
+      command = node => this,
+      javaopts = JAVA_OPTS,
+      workerEnvironment = node => new util.HashMap[String, String](Map(
+        "SPARK_HOME" -> ".",
+        "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
+        "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName,
+        "SPARK_WORKER_MEMORY" -> memory
+      ).asJava)
+    )
+  }
 
   override def run(): Unit = {
     try {
@@ -101,16 +116,5 @@ class EC2SparkSlaveRunner
       EC2Runner.logger.info("Exiting spark master")
       System.exit(0)
     }
-  }
-
-
-  import scala.collection.JavaConverters._
-  override def getWorkerEnvironment(node: EC2Util.EC2Node): util.HashMap[String, String] = {
-    new util.HashMap[String,String](Map(
-      "SPARK_HOME" -> ".",
-      "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
-      "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName,
-      "SPARK_WORKER_MEMORY" -> memory
-    ).asJava)
   }
 }

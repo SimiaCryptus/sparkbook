@@ -19,20 +19,23 @@
 
 package com.simiacryptus.sparkbook
 
-import com.simiacryptus.aws.Tendril
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{JsonUtil, NotebookOutput}
+import com.simiacryptus.util.lang.SerializableConsumer
 
-object EC2Test extends EC2NotebookRunner(EC2NodeSettings.StandardJavaAMI, classOf[SparkTest]) {
+object EC2Test extends SparkTest with EC2Runner with AWSNotebookRunner {
+
+  override def nodeSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
+
   override def JAVA_OPTS = " -Xmx4g -Dspark.master=local:4"
 }
 
-object LocalTest extends LocalRunner(classOf[SimpleTest]) {
+object LocalTest extends SimpleTest with LocalRunner with NotebookRunner {
 
 }
 
-class SimpleTest extends Tendril.SerializableConsumer[NotebookOutput]() {
+class SimpleTest extends SerializableConsumer[NotebookOutput]() {
   override def accept(log: NotebookOutput): Unit = {
     log.eval(()=>{
       "Hello World!"

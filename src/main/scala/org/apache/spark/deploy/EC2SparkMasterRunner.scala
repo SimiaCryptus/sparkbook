@@ -25,14 +25,16 @@ import java.nio.charset.Charset
 import java.util
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril}
 import com.simiacryptus.sparkbook.{EC2Runner, Logging}
+import com.simiacryptus.util.io.KryoUtil
 import org.apache.commons.io.FileUtils
 
 import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
+
 object EC2SparkMasterRunner {
-  def joinAll ()= {
+  def joinAll() = {
     val currentThread = Thread.currentThread()
     val wasDaemon = currentThread.isDaemon
     Thread.sleep((1 minute).toMillis)
@@ -48,21 +50,28 @@ object EC2SparkMasterRunner {
   }
 
 }
-case class EC2SparkMasterRunner
-(
-  nodeSettings: EC2NodeSettings,
-  controlPort: Int = 7077,
-  uiPort: Int = 8080,
-  hostname: String = InetAddress.getLocalHost.getHostName,
-  memory: String = "4g",
-  properties: Map[String, String] = Map.empty
-) extends EC2Runner(nodeSettings) with Logging {
 
-  override def JAVA_OPTS: String = s"-Xmx$memory"
+class EC2SparkMasterRunner(val nodeSettings: EC2NodeSettings) extends EC2Runner with Logging {
+  var hostname: String = InetAddress.getLocalHost.getHostName
 
-  override def command(node: EC2Util.EC2Node): Tendril.SerializableRunnable = {
-    this.copy(hostname = node.getStatus.getPublicDnsName)
+  def memory: String = "4g"
+
+  override def main(args: Array[String]): Unit = {
+    EC2Runner.launch(
+      nodeSettings = nodeSettings,
+      command = node => {
+        this.hostname = node.getStatus.getPublicDnsName
+        KryoUtil.kryo().copy(this)
+      },
+      javaopts = JAVA_OPTS,
+      workerEnvironment = node => new util.HashMap[String, String](Map(
+        "SPARK_HOME" -> ".",
+        "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
+        "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName
+      ).asJava)
+    )
   }
+
   override def run(): Unit = {
     try {
       EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
@@ -81,20 +90,19 @@ case class EC2SparkMasterRunner
       //SparkContext.setActiveContext(SparkContext.getOrCreate(new SparkConf().setMaster(master).setAppName("default")),false)
       EC2SparkMasterRunner.joinAll()
     } catch {
-      case e : Throwable => logger.error("Error running spark master",e)
+      case e: Throwable => logger.error("Error running spark master", e)
     } finally {
       EC2Runner.logger.info("Exiting spark master")
       System.exit(0)
     }
   }
 
+  def controlPort: Int = 7077
 
-  import scala.collection.JavaConverters._
-  override def getWorkerEnvironment(node: EC2Util.EC2Node): util.HashMap[String, String] = {
-    new util.HashMap[String,String](Map(
-      "SPARK_HOME" -> ".",
-      "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
-      "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName
-    ).asJava)
-  }
+  override def JAVA_OPTS: String = s"-Xmx$memory"
+
+  def uiPort: Int = 8080
+
+  def properties: Map[String, String] = Map.empty
+
 }

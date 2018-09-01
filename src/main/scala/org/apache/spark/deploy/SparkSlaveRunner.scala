@@ -30,8 +30,10 @@ import com.amazonaws.services.s3.model.GetObjectRequest
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook._
 import org.apache.commons.io.{FileUtils, IOUtils}
+import Java8Util._
 
 import scala.collection.JavaConverters._
+import scala.util.Random
 
 object SparkSlaveRunner extends Logging {
   def stageZip(request: GetObjectRequest, stagingName: String = "temp.zip", localRoot: File = new File(".").getAbsoluteFile): Boolean = {
@@ -64,11 +66,12 @@ object SparkSlaveRunner extends Logging {
 }
 
 class SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings, override val runner: EC2RunnerLike = EC2Runner) extends EC2Runner with Logging {
-  def workerPort: Int = 7076
-
-  def uiPort: Int = 8081
+  val workerPort: Int = 7078 + Random.nextInt(128)
+  val uiPort: Int = 8080 + Random.nextInt(128)
 
   def memory: String = "4g"
+
+  def numberOfWorkersPerNode: Int = 1
 
   def properties: Map[String, String] = Map.empty
 
@@ -81,10 +84,10 @@ class SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings, ov
         "SPARK_HOME" -> ".",
         "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
         "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName,
-        "SPARK_WORKER_MEMORY" -> memory
+        "SPARK_WORKER_MEMORY" -> memory,
+        "SPARK_WORKER_INSTANCES" -> numberOfWorkersPerNode.toString
       ).asJava)
     )
-    EC2Runner.browse(node, 1080)
     EC2Runner.join(node)
   }
 
@@ -106,7 +109,7 @@ class SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings, ov
 
       val localClasspath = System.getProperty("java.class.path")
       logger.info("Java Local Classpath: " + localClasspath)
-      localClasspath.split(File.pathSeparator).filter(s => true).map(x => new File(x)).filter(_.exists()).foreach(file => {
+      localClasspath.split(File.pathSeparator).filter(s => !s.contains("idea_rt")).map(x => new File(x)).filter(_.exists()).foreach(file => {
         val dest = new File("assembly/target/scala-2.11/jars", file.getName)
         logger.info(s"Copy $file to $dest")
         FileUtils.copyFile(file, dest)
@@ -119,14 +122,38 @@ class SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings, ov
       })
       System.setProperty("spark.executor.extraClassPath", new File(".").getAbsolutePath + "/lib/*.jar")
       System.setProperty("spark.executor.memory", memory)
+      System.setProperty("spark.shuffle.service.enabled", "false")
       if (null != properties) properties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
-      FileUtils.write(new File("conf/spark-defaults.conf"), properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
-      org.apache.spark.deploy.worker.Worker.main(Array(
-        "--webui-port", uiPort.toString,
-        "--port", workerPort.toString,
-        "--memory", memory,
-        master
-      ))
+
+      for (i <- 0 until numberOfWorkersPerNode) {
+        val confDir = new File(s"conf/$i")
+        //        System.setProperty("SPARK_CONF_DIR", new File(configDir).getAbsolutePath)
+        System.setProperty("spark.gpu.port", i.toString)
+        val conf = new File(confDir, s"spark-defaults.conf")
+        FileUtils.write(conf, (properties.filter(_._1 != null).filter(_._2 != null) ++ Map(
+          "spark.gpu.port" -> i.toString
+        )).map(e => "%s=%s".format(e._1, e._2.replaceAll(":", "\\\\:"))).mkString("\n"), Charset.forName("UTF-8"))
+        val runnable: Runnable = () => org.apache.spark.deploy.worker.Worker.main(Array(
+          "--webui-port", (uiPort + i).toString,
+          "--properties-file", conf.getAbsolutePath,
+          "--port", (workerPort + i).toString,
+          "--memory", memory,
+          master
+        ))
+        new Thread(runnable).start()
+        Thread.sleep(5000)
+      }
+
+      //      FileUtils.write(new File(s"conf/spark-defaults.conf"),
+      //        properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
+      //      val runnable: Runnable = () => org.apache.spark.deploy.worker.Worker.main(Array(
+      //        "--webui-port", uiPort.toString,
+      //        "--port", workerPort.toString,
+      //        "--memory", memory,
+      //        master
+      //      ))
+      //      new Thread(runnable).start()
+
       logger.info(s"Slave init to $master running on ${new File(".").getAbsolutePath}")
       SparkMasterRunner.joinAll()
     } catch {

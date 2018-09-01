@@ -68,6 +68,8 @@ trait SparkRunner extends SerializableRunnable with Logging {
       val slaveRunner = new org.apache.spark.deploy.SparkSlaveRunner(masterUrl, workerSettings, runner = runner) {
         override def memory: String = workerMemory
 
+        override def numberOfWorkersPerNode: Int = SparkRunner.this.numberOfWorkersPerNode
+
         override def properties: Map[String, String] = Map(
           "s3bucket" -> envSettings.bucket,
           "spark.executor.memory" -> workerMemory,

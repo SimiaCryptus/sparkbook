@@ -21,7 +21,6 @@ package com.simiacryptus.sparkbook
 
 import java.util.UUID
 
-import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.SerializableConsumer
@@ -30,62 +29,37 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.JavaConverters._
 
-object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
-  //  nodeSettings = EC2NodeSettings.StandardJavaAMI,
-  //  klass = classOf[SparkTest]
-  override def numberOfWorkerNodes: Int = 2
-
-  override def driverMemory: String = "16g"
-
-  override def workerMemory: String = "8g"
-
-  override def masterSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
-
-  override def workerSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
-
-}
-
-object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
-  //  nodeSettings = EC2NodeSettings.StandardJavaAMI,
-  //  klass = classOf[SparkTest]
-  override def numberOfWorkerNodes: Int = 2
-
-  override def driverMemory: String = "16g"
-
-  override def workerMemory: String = "8g"
-
-  override def masterSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
-
-  override def workerSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
-
-}
-
-object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
-
 class SparkTest extends SerializableConsumer[NotebookOutput]() {
   override def accept(log: NotebookOutput): Unit = {
     log.eval(() => {
       ScalaJson.toJson(System.getProperties.asScala.toArray.toMap)
     })
     val context = SparkContext.getOrCreate()
-    log.eval(()=>{
+    log.eval(() => {
       context.getConf.toDebugString
     })
-    log.eval(()=>{
+    log.eval(() => {
       ScalaJson.toJson(context.getExecutorMemoryStatus)
     })
     var n = 100000
-    while(n < 1000000000) {
-      log.eval(()=>{
+    while (n < 1000000000) {
+      log.eval(() => {
         n.toString
       })
-      val uuids : RDD[UUID] = log.eval(()=>{
-        context.range(0,n,1).map(x=>UUID.randomUUID()).cache()
+      val uuids: RDD[UUID] = log.eval(() => {
+        context.range(0, n, 1).map(x => UUID.randomUUID()).cache()
       })
-      log.eval(()=>{
-        ScalaJson.toJson(uuids.map(_.toString).sortBy(_.toString,true).take(100))
+      log.eval(() => {
+        ScalaJson.toJson(uuids.map(_.toString).sortBy(_.toString, true).take(100))
       })
       n = n * 10
+
+      val numberOfWorkers = context.getExecutorMemoryStatus.size
+      val workerRdd = context.parallelize((0 until numberOfWorkers).toList, numberOfWorkers)
+      log.p("Worker GPU Assignments: " + ScalaJson.toJson(workerRdd.map(x => {
+        Option(System.getProperty("spark.gpu.port")).getOrElse("?")
+      }).groupBy(x => x).mapValues(_.size).collect().toMap))
+
     }
   }
 }

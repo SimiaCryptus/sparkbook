@@ -39,10 +39,11 @@ import com.simiacryptus.util.lang.{CodeUtil, SerializableConsumer, SerializableR
 import com.simiacryptus.util.test.SysOutInterceptor
 import org.slf4j.LoggerFactory
 
+
 /**
   * The type Ec 2 runner.
   */
-object EC2Runner {
+object EC2Runner extends EC2RunnerLike {
   val logger = LoggerFactory.getLogger(classOf[EC2Runner])
 
   /**
@@ -112,18 +113,6 @@ object EC2Runner {
     name
   }
 
-  def launch
-  (
-    nodeSettings: EC2NodeSettings,
-    command: EC2Util.EC2Node => SerializableRunnable,
-    javaopts: String = "",
-    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = _ => new util.HashMap[String, String]()
-  ): Unit = {
-    val (node, _) = start(nodeSettings, command, javaopts = javaopts, workerEnvironment)
-    browse(node, 1080)
-    join(node)
-  }
-
   def browse(node: EC2Util.EC2Node, port: Int = 1080): Unit = {
     try
       EC2Runner.browse(new URI(String.format("http://%s:" + port + "/", node.getStatus.getPublicDnsName)))
@@ -133,71 +122,58 @@ object EC2Runner {
     }
   }
 
-  def start
+  override def start
   (
     nodeSettings: EC2NodeSettings,
     command: EC2Util.EC2Node => SerializableRunnable,
     javaopts: String = "",
     workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = _ => new util.HashMap[String, String]()
   ): (EC2Util.EC2Node, Tendril.TendrilControl) = {
+    val tuple@(node, control) = init(nodeSettings, javaopts, workerEnvironment)
+    try {
+      control.start(command(node))
+      tuple
+    }
+    catch {
+      case e: Throwable =>
+        tuple._1.close()
+        throw new RuntimeException(e)
+    }
+  }
+
+
+  def init(nodeSettings: EC2NodeSettings, javaopts: String, workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]) = {
     val tendrilNodeSettings: AwsTendrilNodeSettings = new AwsTendrilNodeSettings(envSettings)
     tendrilNodeSettings.instanceType = nodeSettings.machineType
     tendrilNodeSettings.imageId = nodeSettings.imageId
     tendrilNodeSettings.username = nodeSettings.username
     tendrilNodeSettings.jvmConfig.javaOpts += javaopts
     tendrilNodeSettings.jvmConfig.javaOpts += " -DGITBASE=\"" + CodeUtil.getGitBase + "\""
-    val node = launch(tendrilNodeSettings, command, workerEnvironment)
-    node
-  }
-
-  def launch
-  (
-    tendrilNodeSettings: AwsTendrilNodeSettings,
-    command: EC2Util.EC2Node => SerializableRunnable,
-    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]
-  ) = {
     val localControlPort = new Random().nextInt(1024) + 1024
     val node: EC2Util.EC2Node = tendrilNodeSettings.startNode(EC2Runner.ec2, localControlPort)
-    try {
-      val control = Tendril.startRemoteJvm(node, tendrilNodeSettings.jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, tendrilNodeSettings.bucket, workerEnvironment(node))
-      require(null != control)
-      List(
-        "ec2-settings.json",
-        "user-settings.json"
-      ).foreach(configFile => node.scp(new File(configFile), configFile))
-      control.start(command(node))
-      node -> control
-    }
-    catch {
-      case e: Throwable =>
-        node.close()
-        throw new RuntimeException(e)
-    }
+    val control = Tendril.startRemoteJvm(node, tendrilNodeSettings.jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, tendrilNodeSettings.bucket, workerEnvironment(node))
+    List(
+      "ec2-settings.json",
+      "user-settings.json"
+    ).foreach(configFile => node.scp(new File(configFile), configFile))
+    node -> control
   }
 
+  //  def launch(command: EC2Util.EC2Node => SerializableRunnable, node: EC2Util.EC2Node, control: Tendril.TendrilControl) = {
+  //    require(null != control)
+  //    control.start(command(node))
+  //  }
+}
+
+trait EC2Runner extends BaseRunner {
+  lazy val (envSettings, s3bucket, emailAddress) = {
+    val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
+    (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
+  }
+
+  override def runner: EC2RunnerLike = EC2Runner
 
 }
 
-trait EC2Runner extends SerializableRunnable {
-  def nodeSettings: EC2NodeSettings
 
-  def s3bucket: String = EC2Runner.s3bucket
-
-  def emailAddress: String = EC2Runner.emailAddress
-
-  def exe[T](args: String*): T = {
-    require(this.isInstanceOf[T])
-    main(args.toArray)
-    this.asInstanceOf
-  }
-
-  def main(args: Array[String]): Unit = {
-    EC2Runner.launch(nodeSettings, (node: EC2Util.EC2Node) => EC2Runner.this, javaopts = JAVA_OPTS)
-  }
-
-  def start(): (EC2Util.EC2Node, Tendril.TendrilControl) = {
-    EC2Runner.start(nodeSettings, (node: EC2Util.EC2Node) => EC2Runner.this, javaopts = JAVA_OPTS)
-  }
-
-  def JAVA_OPTS = " -Xmx50g -Dspark.master=local:4"
-}

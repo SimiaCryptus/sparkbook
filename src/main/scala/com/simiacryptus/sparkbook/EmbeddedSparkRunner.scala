@@ -19,8 +19,6 @@
 
 package com.simiacryptus.sparkbook
 
-import com.simiacryptus.sparkbook.Java8Util._
-
-trait EC2SparkRunner extends SparkRunner {
-  override def runner: EC2RunnerLike = EC2Runner
+trait EmbeddedSparkRunner extends SparkRunner {
+  override def runner: EC2RunnerLike = EmbeddedRunner
 }

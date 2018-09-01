@@ -19,22 +19,17 @@
 
 package com.simiacryptus.util.io
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.google.gson.JsonArray
-import com.google.gson.JsonPrimitive
-import org.apache.commons.io.FileUtils
-import javax.annotation.Nonnull
-import javax.annotation.Nullable
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.IOException
+import java.io.{ByteArrayOutputStream, File, IOException}
 import java.nio.charset.Charset
 import java.util.function.Supplier
 import java.util.stream.IntStream
 
+import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.google.gson.{JsonArray, JsonPrimitive}
 import com.simiacryptus.sparkbook.Java8Util._
+import javax.annotation.{Nonnull, Nullable}
+import org.apache.commons.io.FileUtils
 
 /**
   * The type Json util.
@@ -114,8 +109,18 @@ object ScalaJson {
     * @return the mapper
     */
   def getMapper: ObjectMapper = {
-    val mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT)
+    val mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT).enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
     mapper.registerModule(DefaultScalaModule)
     mapper
+  }
+
+  def getExplicitMapper: ObjectMapper = {
+    val mapper = new ObjectMapper()
+    mapper.enable(SerializationFeature.INDENT_OUTPUT)
+    mapper.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+    mapper.enable(MapperFeature.USE_STD_BEAN_NAMING)
+    mapper.enable(SerializationFeature.WRAP_ROOT_VALUE)
+    mapper.registerModule(DefaultScalaModule)
+    mapper.enableDefaultTyping()
   }
 }

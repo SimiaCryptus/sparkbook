@@ -19,8 +19,19 @@
 
 package com.simiacryptus.sparkbook
 
-import com.simiacryptus.sparkbook.Java8Util._
+import java.util
 
-trait EC2SparkRunner extends SparkRunner {
-  override def runner: EC2RunnerLike = EC2Runner
+import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.aws.{EC2Util, Tendril}
+import com.simiacryptus.util.lang.SerializableRunnable
+
+trait EC2RunnerLike {
+  def start
+  (
+    nodeSettings: EC2NodeSettings,
+    command: EC2Util.EC2Node => SerializableRunnable,
+    javaopts: String = "",
+    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = _ => new util.HashMap[String, String]()
+  ): (EC2Util.EC2Node, Tendril.TendrilControl)
 }
+

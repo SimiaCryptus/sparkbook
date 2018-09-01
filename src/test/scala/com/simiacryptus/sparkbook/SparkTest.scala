@@ -28,7 +28,24 @@ import com.simiacryptus.util.lang.SerializableConsumer
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
+import scala.collection.JavaConverters._
+
 object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
+  //  nodeSettings = EC2NodeSettings.StandardJavaAMI,
+  //  klass = classOf[SparkTest]
+  override def numberOfWorkerNodes: Int = 2
+
+  override def driverMemory: String = "16g"
+
+  override def workerMemory: String = "8g"
+
+  override def masterSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
+
+  override def workerSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
+
+}
+
+object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
   //  nodeSettings = EC2NodeSettings.StandardJavaAMI,
   //  klass = classOf[SparkTest]
   override def numberOfWorkerNodes: Int = 2
@@ -47,6 +64,9 @@ object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
 
 class SparkTest extends SerializableConsumer[NotebookOutput]() {
   override def accept(log: NotebookOutput): Unit = {
+    log.eval(() => {
+      ScalaJson.toJson(System.getProperties.asScala.toArray.toMap)
+    })
     val context = SparkContext.getOrCreate()
     log.eval(()=>{
       context.getConf.toDebugString

@@ -25,7 +25,8 @@ import java.nio.charset.Charset
 import java.util
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.sparkbook.{EC2Runner, Logging}
+import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
+import com.simiacryptus.sparkbook.{EC2Runner, EC2RunnerLike, Logging}
 import com.simiacryptus.util.io.KryoUtil
 import org.apache.commons.io.FileUtils
 
@@ -33,7 +34,7 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
-object EC2SparkMasterRunner {
+object SparkMasterRunner {
   def joinAll() = {
     val currentThread = Thread.currentThread()
     val wasDaemon = currentThread.isDaemon
@@ -51,13 +52,13 @@ object EC2SparkMasterRunner {
 
 }
 
-class EC2SparkMasterRunner(val nodeSettings: EC2NodeSettings) extends EC2Runner with Logging {
+class SparkMasterRunner(val nodeSettings: EC2NodeSettings, override val runner: EC2RunnerLike = EC2Runner) extends EC2Runner with Logging {
   var hostname: String = InetAddress.getLocalHost.getHostName
 
   def memory: String = "4g"
 
   override def main(args: Array[String]): Unit = {
-    EC2Runner.launch(
+    val (node, _) = runner.start(
       nodeSettings = nodeSettings,
       command = node => {
         this.hostname = node.getStatus.getPublicDnsName
@@ -70,17 +71,20 @@ class EC2SparkMasterRunner(val nodeSettings: EC2NodeSettings) extends EC2Runner 
         "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName
       ).asJava)
     )
+    browse(node, 1080)
+    join(node)
+
   }
 
   override def run(): Unit = {
     try {
-      EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
+      //EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
       logger.info("Hostname: " + hostname)
       val master = s"spark://$hostname:$controlPort"
       logger.info("Spark master = " + master)
       System.setProperty("spark.master", master)
       System.setProperty("spark.app.name", "default")
-      properties.foreach(e => System.setProperty(e._1, e._2))
+      if (null != properties) properties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
       FileUtils.write(new File("conf/spark-defaults.conf"), properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
       org.apache.spark.deploy.master.Master.main(Array(
         "--host", hostname,
@@ -88,7 +92,7 @@ class EC2SparkMasterRunner(val nodeSettings: EC2NodeSettings) extends EC2Runner 
         "--webui-port", uiPort.toString
       ))
       //SparkContext.setActiveContext(SparkContext.getOrCreate(new SparkConf().setMaster(master).setAppName("default")),false)
-      EC2SparkMasterRunner.joinAll()
+      SparkMasterRunner.joinAll()
     } catch {
       case e: Throwable => logger.error("Error running spark master", e)
     } finally {

@@ -29,6 +29,7 @@ object EC2Test extends SparkTest with EC2Runner with AWSNotebookRunner {
   override def nodeSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
 
   override def JAVA_OPTS = " -Xmx4g -Dspark.master=local:4"
+
 }
 
 object LocalTest extends SimpleTest with LocalRunner with NotebookRunner {

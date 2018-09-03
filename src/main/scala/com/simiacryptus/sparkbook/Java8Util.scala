@@ -21,7 +21,7 @@ package com.simiacryptus.sparkbook
 
 import java.util.function.{BiFunction, BinaryOperator, DoubleSupplier, DoubleUnaryOperator, Function, IntToDoubleFunction, IntUnaryOperator, Predicate, Supplier, ToDoubleBiFunction, ToDoubleFunction}
 
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable, UncheckedSupplier}
+import com.simiacryptus.util.lang.{SerializableCallable, SerializableConsumer, SerializableRunnable, UncheckedSupplier}
 
 object Java8Util {
 
@@ -51,6 +51,12 @@ object Java8Util {
   implicit def cvt[T <: AnyRef](fn: () ⇒ T): Supplier[T] = {
     new Supplier[T] {
       override def get(): T = fn.apply()
+    }
+  }
+
+  implicit def cvtSerializableCallable[T <: AnyRef](fn: () ⇒ T): SerializableCallable[T] = {
+    new SerializableCallable[T] {
+      override def call(): T = fn.apply()
     }
   }
 

@@ -19,30 +19,39 @@
 
 package com.simiacryptus.sparkbook
 
+import java.io.File
 import java.util
 
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
-import com.simiacryptus.aws.EC2Util.EC2Node
+import com.simiacryptus.aws.Tendril
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril}
-import com.simiacryptus.util.lang.{SerializableCallable, SerializableRunnable}
+import com.simiacryptus.util.lang.SerializableRunnable
+import Java8Util._
+import scala.collection.JavaConversions._
 
-object ChildJvmRunner extends EC2RunnerLike {
-  override def start(nodeSettings: EC2NodeSettings, command: EC2Util.EC2Node => SerializableRunnable, javaopts: String, workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]): (EC2Util.EC2Node, Tendril.TendrilControl) = {
-    val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "")
-    command.apply(node).run()
-    node -> new Tendril.TendrilControl(new Tendril.TendrilLink {
-      override def isAlive: Boolean = true
+import scala.util.Random
 
-      override def exit(): Unit = {}
+trait ChildJvmRunner extends BaseRunner with Logging {
+  def workingDir = new File(".")
 
-      override def time(): Long = System.currentTimeMillis()
+  def environment: Map[String, String] = Map()
 
-      override def run[T](task: SerializableCallable[T]): T = task.call()
-    })
+  override lazy val runner: EC2RunnerLike = new LocalBaseRunner with Logging {
+    lazy val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts, new util.HashMap[String, String](environment), workingDir)
+
+    override def run(task: SerializableRunnable) = {
+      control.start(() => task.run())
+    }
+
+    override def status: String = {
+      try {
+        control.eval(() => "running")
+      } catch {
+        case e: Throwable =>
+          logger.warn("Error getting child status", e)
+          e.getMessage
+      }
+    }
   }
-}
 
-trait ChildJvmRunner extends BaseRunner {
-  override def runner: EC2RunnerLike = ChildJvmRunner
+  override def nodeSettings: EC2NodeSettings = null
 }

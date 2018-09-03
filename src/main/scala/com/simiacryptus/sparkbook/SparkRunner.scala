@@ -27,7 +27,7 @@ import com.simiacryptus.aws.{AwsTendrilEnvSettings, AwsTendrilNodeSettings, EC2U
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.ScalaJson
 import com.simiacryptus.util.lang.SerializableRunnable
-import org.apache.spark.deploy.SparkMasterRunner
+import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
 
 trait SparkRunner extends SerializableRunnable with Logging {
   lazy val (envSettings: AwsTendrilEnvSettings, s3bucket: String, emailAddress: String) = {
@@ -51,39 +51,58 @@ trait SparkRunner extends SerializableRunnable with Logging {
   }
 
   def launch(): Unit = {
-    val masterRunner = new SparkMasterRunner(masterSettings, runner = runner) {
-      override def memory = driverMemory
-
-      override def properties = Map(
+    val masterRunner = new SparkMasterRunner(
+      nodeSettings = masterSettings,
+      runner = runner,
+      maxHeap = Option(driverMemory),
+      properties = Map(
         "s3bucket" -> envSettings.bucket,
         "spark.executor.memory" -> workerMemory,
         "spark.app.name" -> getClass.getCanonicalName
-      )
-    }
-    val (master, masterControl) = runner.start(masterSettings, (node: EC2Util.EC2Node) => masterRunner, javaopts = masterRunner.JAVA_OPTS)
-    masterUrl = "spark://" + master.getStatus.getPublicDnsName + ":7077"
-    EC2Runner.browse(master, 8080)
-    val workers = (1 to numberOfWorkerNodes).par.map(i => {
+      ))
+    val (masterNode, masterControl) = runner.start(
+      masterSettings,
+      (node: EC2Util.EC2Node) => {
+        logger.info("Setting hostname to " + node.getStatus.getPublicDnsName)
+        masterRunner.copy(hostname = node.getStatus.getPublicDnsName)
+      },
+      javaopts = masterRunner.javaOpts
+    )
+    masterUrl = "spark://" + masterNode.getStatus.getPublicDnsName + ":7077"
+    EC2Runner.browse(masterNode, 8080)
+    val workers = (1 to numberOfWorkerNodes).par.map(f = i => {
       logger.info(s"Starting worker #$i/$numberOfWorkerNodes")
-      val slaveRunner = new org.apache.spark.deploy.SparkSlaveRunner(masterUrl, workerSettings, runner = runner) {
-        override def memory: String = workerMemory
-
-        override def numberOfWorkersPerNode: Int = SparkRunner.this.numberOfWorkersPerNode
-
-        override def properties: Map[String, String] = Map(
-          "s3bucket" -> envSettings.bucket,
+      val slaveRunner = SparkSlaveRunner(
+        master = masterUrl,
+        nodeSettings = workerSettings,
+        runner = SparkRunner.this.runner,
+        memory = workerMemory,
+        numberOfWorkersPerNode = SparkRunner.this.numberOfWorkersPerNode,
+        sparkConfig = Map(
           "spark.executor.memory" -> workerMemory,
           "spark.master" -> masterUrl,
           "spark.app.name" -> getClass.getCanonicalName
+        ),
+        javaConfig = Map(
+          "s3bucket" -> envSettings.bucket
         )
-      }
-      runner.start(workerSettings, (node: EC2Util.EC2Node) => slaveRunner, javaopts = slaveRunner.JAVA_OPTS)
+      )
+      runner.start(
+        workerSettings,
+        (node: EC2Util.EC2Node) => slaveRunner.copy(hostname = node.getStatus.getPublicDnsName),
+        javaopts = slaveRunner.javaOpts
+      )
     }).toList
     try {
-      masterControl.execute(this)
-      EC2Runner.browse(master, 1080)
-      EC2Runner.browse(master, 4040)
-      EC2Runner.join(master)
+      val thisInstance = this
+      require(null != masterControl)
+      masterControl.start(() => {
+        require(null != thisInstance)
+        thisInstance.run()
+      })
+      EC2Runner.browse(masterNode, 1080)
+      EC2Runner.browse(masterNode, 4040)
+      EC2Runner.join(masterNode)
     } finally {
       workers.foreach(_._1.close())
     }

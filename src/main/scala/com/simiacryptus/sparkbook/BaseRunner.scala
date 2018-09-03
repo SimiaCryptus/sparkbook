@@ -34,16 +34,27 @@ trait BaseRunner extends SerializableRunnable {
   }
 
   def main(args: Array[String]): Unit = {
-    val (node, _) = runner.start(nodeSettings, (node: EC2Util.EC2Node) => BaseRunner.this, javaopts = JAVA_OPTS)
+    val (node, _) = start(args)
     browse(node, 1080)
     join(node)
   }
 
   def runner: EC2RunnerLike
 
-  def start(): (EC2Util.EC2Node, Tendril.TendrilControl) = {
-    runner.start(nodeSettings, (node: EC2Util.EC2Node) => BaseRunner.this, javaopts = JAVA_OPTS)
+  def cmdFactory(args: Array[String])(node: EC2Util.EC2Node) = this
+
+  def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, Tendril.TendrilControl) = {
+    runner.start(nodeSettings, cmdFactory(args), javaopts = javaOpts)
   }
 
-  def JAVA_OPTS = " -Xmx50g -Dspark.master=local:4"
+  def maxHeap: Option[String] = Option("50g")
+
+  def javaProperties: Map[String, String] = Map(
+    "spark.master" -> "local[4]"
+  )
+
+  def javaOpts = List(
+    maxHeap.map("-Xmx" + _).toList,
+    javaProperties.map(e => "-D" + e._1 + "=" + e._2).toList
+  ).flatten.mkString(" ")
 }

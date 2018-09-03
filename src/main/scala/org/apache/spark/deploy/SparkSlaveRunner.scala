@@ -20,6 +20,7 @@
 package org.apache.spark.deploy
 
 import java.io.{File, FileOutputStream}
+import java.net.InetAddress
 import java.nio.charset.Charset
 import java.util
 import java.util.zip.ZipFile
@@ -27,10 +28,11 @@ import java.util.zip.ZipFile
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
+import com.simiacryptus.aws.ClasspathUtil
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook._
+import com.simiacryptus.util.io.ScalaJson
 import org.apache.commons.io.{FileUtils, IOUtils}
-import Java8Util._
 
 import scala.collection.JavaConverters._
 import scala.util.Random
@@ -65,21 +67,25 @@ object SparkSlaveRunner extends Logging {
 
 }
 
-class SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings, override val runner: EC2RunnerLike = EC2Runner) extends EC2Runner with Logging {
+case class SparkSlaveRunner
+(
+  master: String,
+  nodeSettings: EC2NodeSettings,
+  hostname: String = InetAddress.getLocalHost.getHostName,
+  memory: String = "4g",
+  numberOfWorkersPerNode: Int = 1,
+  sparkConfig: Map[String, String] = Map.empty,
+  val javaConfig: Map[String, String] = Map.empty,
+  override val runner: EC2RunnerLike = EC2Runner
+) extends EC2Runner with Logging {
   val workerPort: Int = 7078 + Random.nextInt(128)
   val uiPort: Int = 8080 + Random.nextInt(128)
-
-  def memory: String = "4g"
-
-  def numberOfWorkersPerNode: Int = 1
-
-  def properties: Map[String, String] = Map.empty
 
   override def main(args: Array[String]): Unit = {
     val (node, _) = runner.start(
       nodeSettings = nodeSettings,
       command = node => this,
-      javaopts = JAVA_OPTS,
+      javaopts = javaOpts,
       workerEnvironment = node => new util.HashMap[String, String](Map(
         "SPARK_HOME" -> ".",
         "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
@@ -93,74 +99,100 @@ class SparkSlaveRunner(val master: String, val nodeSettings: EC2NodeSettings, ov
 
   override def run(): Unit = {
     try {
-      //EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
-      val scalaAssemblyJars = new File("assembly/target/scala-2.11/jars")
-      scalaAssemblyJars.mkdirs()
-      scalaAssemblyJars.listFiles().foreach(file => {
-        //logger.info(s"Deleting $file")
-        file.delete()
-      })
-      val scalaLauncherJars = new File("launcher/target/scala-2.11")
-      scalaLauncherJars.mkdirs()
-      scalaLauncherJars.listFiles().foreach(file => {
-        //logger.info(s"Deleting $file")
-        file.delete()
-      })
-
-      val localClasspath = System.getProperty("java.class.path")
-      logger.info("Java Local Classpath: " + localClasspath)
-      localClasspath.split(File.pathSeparator).filter(s => !s.contains("idea_rt")).map(x => new File(x)).filter(_.exists()).foreach(file => {
-        val dest = new File("assembly/target/scala-2.11/jars", file.getName)
-        logger.info(s"Copy $file to $dest")
-        FileUtils.copyFile(file, dest)
-      })
-      val lib = new File("lib")
-      if (lib.exists()) lib.listFiles().foreach(file => {
-        val dest = new File("assembly/target/scala-2.11/jars", file.getName)
-        //logger.info(s"Copy $file to $dest")
-        FileUtils.copyFile(file, dest)
-      })
-      System.setProperty("spark.executor.extraClassPath", new File(".").getAbsolutePath + "/lib/*.jar")
-      System.setProperty("spark.executor.memory", memory)
-      System.setProperty("spark.shuffle.service.enabled", "false")
-      if (null != properties) properties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
-
+      //if (null != javaConfig) javaConfig.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
       for (i <- 0 until numberOfWorkersPerNode) {
-        val confDir = new File(s"conf/$i")
-        //        System.setProperty("SPARK_CONF_DIR", new File(configDir).getAbsolutePath)
-        System.setProperty("spark.gpu.port", i.toString)
-        val conf = new File(confDir, s"spark-defaults.conf")
-        FileUtils.write(conf, (properties.filter(_._1 != null).filter(_._2 != null) ++ Map(
-          "spark.gpu.port" -> i.toString
-        )).map(e => "%s=%s".format(e._1, e._2.replaceAll(":", "\\\\:"))).mkString("\n"), Charset.forName("UTF-8"))
-        val runnable: Runnable = () => org.apache.spark.deploy.worker.Worker.main(Array(
+        val workingDir = new File(s"spark_workers${File.separator}%d".format(i))
+        workingDir.mkdirs()
+        prepareWorkingDirectory(workingDir, i)
+        val conf = new File(workingDir, s"conf${File.separator}spark-defaults.conf")
+        FileUtils.write(conf, (sparkConfig ++ Map(
+          "spark.executor.extraClassPath" -> (new File(".").getAbsolutePath + "/lib/*.jar"),
+          "spark.executor.extraJavaOptions" -> javaConfig.map(e => s"-D${e._1}=${e._2}").mkString(" "),
+          "spark.executor.memory" -> memory,
+          "spark.shuffle.service.enabled" -> "false"
+        )).map(e => "%s\t%s".format(e._1, e._2 //.replaceAll(":", "\\\\:")
+        )).mkString("\n"), Charset.forName("UTF-8"))
+        SingleSlaveRunner(args = Array(
           "--webui-port", (uiPort + i).toString,
-          "--properties-file", conf.getAbsolutePath,
           "--port", (workerPort + i).toString,
           "--memory", memory,
           master
-        ))
-        new Thread(runnable).start()
-        Thread.sleep(5000)
+        ), workingDir = workingDir, environment = Map(
+          "SPARK_HOME" -> workingDir.getAbsolutePath
+        )).start()
       }
-
-      //      FileUtils.write(new File(s"conf/spark-defaults.conf"),
-      //        properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
-      //      val runnable: Runnable = () => org.apache.spark.deploy.worker.Worker.main(Array(
-      //        "--webui-port", uiPort.toString,
-      //        "--port", workerPort.toString,
-      //        "--memory", memory,
-      //        master
-      //      ))
-      //      new Thread(runnable).start()
-
       logger.info(s"Slave init to $master running on ${new File(".").getAbsolutePath}")
       SparkMasterRunner.joinAll()
     } catch {
-      case e: Throwable => logger.error("Error running spark master", e)
+      case e: Throwable => logger.error("Error running spark slave", e)
     } finally {
-      EC2Runner.logger.info("Exiting spark master")
+      EC2Runner.logger.info("Exiting spark slave")
       System.exit(0)
     }
   }
+
+  private def prepareWorkingDirectory(workingDir: File, workerNumber: Int) = {
+    //EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
+    val scalaAssemblyJars = new File(workingDir, "assembly/target/scala-2.11/jars")
+    scalaAssemblyJars.mkdirs()
+    scalaAssemblyJars.listFiles().foreach(file => {
+      //logger.info(s"Deleting $file")
+      file.delete()
+    })
+    val scalaLauncherJars = new File(workingDir, "launcher/target/scala-2.11")
+    scalaLauncherJars.mkdirs()
+
+    val localClasspath = System.getProperty("java.class.path")
+    logger.info("Java Local Classpath: " + localClasspath)
+    localClasspath.split(File.pathSeparator).filter(s => !s.contains("idea_rt")
+      && !s.contains(File.separator + "jre" + File.separator)
+      && !s.contains(File.separator + "jdk" + File.separator)
+    ).map(x => new File(x)).filter(_.exists()).foreach(file => {
+      var src = file
+      if (src.isDirectory) src = ClasspathUtil.toJar(src)
+      var dest = new File(workingDir, "assembly/target/scala-2.11/jars/" + src.getName)
+      logger.debug(s"Copy $src to $dest")
+      try {
+        copyFile(src, dest)
+      } catch {
+        case e: Throwable => logger.info("Error copying file " + src + " to " + dest, e)
+      }
+    })
+
+    LocalAppSettings.write(Map(
+      "worker.index" -> workerNumber.toString
+    ), workingDir)
+  }
+
+  final def copyFile(src: File, dest: File, retries: Int = 2): Unit = {
+    try {
+      if (!dest.getAbsoluteFile.equals(src.getAbsoluteFile)) FileUtils.copyFile(src, dest)
+    } catch {
+      case e: Throwable if (retries > 0) =>
+        Thread.sleep(100)
+        copyFile(src, dest, retries - 1)
+    }
+  }
+
+
+}
+
+case class SingleSlaveRunner
+(
+  val args: Array[String],
+  override val javaProperties: Map[String, String] = Map.empty,
+  override val workingDir: File = new File("."),
+  override val environment: Map[String, String] = Map()
+) extends ChildJvmRunner {
+
+  override def maxHeap: Option[String] = Option("1g")
+
+  override def run(): Unit = {
+    javaProperties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
+    System.setProperty("spark.executor.extraJavaOptions", javaProperties.map(e => s"-D${e._1}=${e._2}").mkString(" "))
+    System.getProperties.asScala.foreach(e => System.out.println("Spark Work Init Property: " + e._1 + " = " + e._2))
+    fn(args)
+  }
+
+  def fn: Array[String] => Unit = org.apache.spark.deploy.worker.Worker.main _
 }

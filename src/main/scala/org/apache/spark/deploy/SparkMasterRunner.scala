@@ -52,34 +52,20 @@ object SparkMasterRunner {
 
 }
 
-class SparkMasterRunner(val nodeSettings: EC2NodeSettings, override val runner: EC2RunnerLike = EC2Runner) extends EC2Runner with Logging {
-  var hostname: String = InetAddress.getLocalHost.getHostName
-
-  def memory: String = "4g"
-
-  override def main(args: Array[String]): Unit = {
-    val (node, _) = runner.start(
-      nodeSettings = nodeSettings,
-      command = node => {
-        this.hostname = node.getStatus.getPublicDnsName
-        KryoUtil.kryo().copy(this)
-      },
-      javaopts = JAVA_OPTS,
-      workerEnvironment = node => new util.HashMap[String, String](Map(
-        "SPARK_HOME" -> ".",
-        "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
-        "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName
-      ).asJava)
-    )
-    browse(node, 1080)
-    join(node)
-
-  }
+case class SparkMasterRunner
+(
+  nodeSettings: EC2NodeSettings,
+  properties: Map[String, String] = Map.empty,
+  hostname: String = InetAddress.getLocalHost.getHostName,
+  override val maxHeap: Option[String] = Option("4g"),
+  override val runner: EC2RunnerLike = EC2Runner
+) extends EC2Runner with Logging {
 
   override def run(): Unit = {
     try {
       //EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
       logger.info("Hostname: " + hostname)
+      logger.info("this: " + this)
       val master = s"spark://$hostname:$controlPort"
       logger.info("Spark master = " + master)
       System.setProperty("spark.master", master)
@@ -103,10 +89,6 @@ class SparkMasterRunner(val nodeSettings: EC2NodeSettings, override val runner: 
 
   def controlPort: Int = 7077
 
-  override def JAVA_OPTS: String = s"-Xmx$memory"
-
   def uiPort: Int = 8080
-
-  def properties: Map[String, String] = Map.empty
 
 }

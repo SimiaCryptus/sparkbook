@@ -22,16 +22,18 @@ package com.simiacryptus.sparkbook
 import com.simiacryptus.aws.exe.EC2NodeSettings
 
 object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
-  //  nodeSettings = EC2NodeSettings.StandardJavaAMI,
+  //  nodeSettings = EC2NodeSettings.T2_L,
   //  klass = classOf[SparkTest]
   override def numberOfWorkerNodes: Int = 2
 
-  override def driverMemory: String = "16g"
+  override def numberOfWorkersPerNode: Int = 2
+
+  override def driverMemory: String = "8g"
 
   override def workerMemory: String = "8g"
 
-  override def masterSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
+  override def masterSettings: EC2NodeSettings = EC2NodeSettings.T2_L
 
-  override def workerSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
+  override def workerSettings: EC2NodeSettings = EC2NodeSettings.T2_XL
 
 }

@@ -21,15 +21,16 @@ package com.simiacryptus.sparkbook
 
 import java.util.UUID
 
-import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.SerializableConsumer
 import org.apache.spark.SparkContext
+import org.apache.spark.deploy.LocalAppSettings
 import org.apache.spark.rdd.RDD
+import Java8Util._
 
 import scala.collection.JavaConverters._
 
-class SparkTest extends SerializableConsumer[NotebookOutput]() {
+abstract class SparkTest extends SerializableConsumer[NotebookOutput]() {
   override def accept(log: NotebookOutput): Unit = {
     log.eval(() => {
       ScalaJson.toJson(System.getProperties.asScala.toArray.toMap)
@@ -41,6 +42,8 @@ class SparkTest extends SerializableConsumer[NotebookOutput]() {
     log.eval(() => {
       ScalaJson.toJson(context.getExecutorMemoryStatus)
     })
+
+
     var n = 100000
     while (n < 1000000000) {
       log.eval(() => {
@@ -54,11 +57,15 @@ class SparkTest extends SerializableConsumer[NotebookOutput]() {
       })
       n = n * 10
 
-      val numberOfWorkers = context.getExecutorMemoryStatus.size
-      val workerRdd = context.parallelize((0 until numberOfWorkers).toList, numberOfWorkers)
-      log.p("Worker GPU Assignments: " + ScalaJson.toJson(workerRdd.map(x => {
-        Option(System.getProperty("spark.gpu.port")).getOrElse("?")
-      }).groupBy(x => x).mapValues(_.size).collect().toMap))
+      log.eval(() => {
+        def numberOfWorkers = context.getExecutorMemoryStatus.size
+
+        def workerRdd = context.parallelize((0 until numberOfWorkers).toList, numberOfWorkers)
+
+        ScalaJson.toJson(workerRdd.map(x => LocalAppSettings.read())
+          .collect().groupBy(x => x).mapValues(_.size).toList
+        )
+      })
 
     }
   }

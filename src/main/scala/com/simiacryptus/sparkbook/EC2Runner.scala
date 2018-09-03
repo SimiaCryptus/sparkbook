@@ -51,6 +51,7 @@ object EC2Runner extends EC2RunnerLike {
     *
     * @return the ec 2
     */
+  @transient
   lazy val ec2: AmazonEC2 = AmazonEC2ClientBuilder.standard.withRegion(Regions.US_EAST_1).build
 
   /**
@@ -58,6 +59,7 @@ object EC2Runner extends EC2RunnerLike {
     *
     * @return the iam
     */
+  @transient
   lazy val iam: AmazonIdentityManagement = AmazonIdentityManagementClientBuilder.standard.withRegion(Regions.US_EAST_1).build
 
   /**
@@ -65,6 +67,7 @@ object EC2Runner extends EC2RunnerLike {
     *
     * @return the s 3
     */
+  @transient
   lazy val s3: AmazonS3 = AmazonS3ClientBuilder.standard.withRegion(Regions.US_WEST_2).build
 
   lazy val (envSettings, s3bucket, emailAddress) = {
@@ -131,7 +134,9 @@ object EC2Runner extends EC2RunnerLike {
   ): (EC2Util.EC2Node, Tendril.TendrilControl) = {
     val tuple@(node, control) = init(nodeSettings, javaopts, workerEnvironment)
     try {
-      control.start(command(node))
+      val runnable = command(node)
+      logger.info("Updated runnable: " + runnable)
+      control.start(runnable)
       tuple
     }
     catch {

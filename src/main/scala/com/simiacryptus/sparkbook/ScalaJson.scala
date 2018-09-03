@@ -24,6 +24,7 @@ import java.nio.charset.Charset
 import java.util.function.Supplier
 import java.util.stream.IntStream
 
+import com.amazonaws.util.StringInputStream
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.gson.{JsonArray, JsonPrimitive}
@@ -93,6 +94,16 @@ object ScalaJson {
         throw new RuntimeException(e)
     }
     new String(outputStream.toByteArray, Charset.forName("UTF-8"))
+  }
+
+  @Nonnull def fromJson[T](str: String, obj: Class[T], objectMapper: ObjectMapper = getMapper): T = {
+    val outputStream = new StringInputStream(str)
+    try
+      objectMapper.readValue(outputStream, obj)
+    catch {
+      case e: IOException =>
+        throw new RuntimeException(e)
+    }
   }
 
   @throws[IOException]

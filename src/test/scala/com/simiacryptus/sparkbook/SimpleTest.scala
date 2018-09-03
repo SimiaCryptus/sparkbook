@@ -26,13 +26,17 @@ import com.simiacryptus.util.lang.SerializableConsumer
 
 object EC2Test extends SparkTest with EC2Runner with AWSNotebookRunner {
 
-  override def nodeSettings: EC2NodeSettings = EC2NodeSettings.StandardJavaAMI
+  override def nodeSettings: EC2NodeSettings = EC2NodeSettings.T2_L
 
-  override def JAVA_OPTS = " -Xmx4g -Dspark.master=local:4"
+  override def javaOpts = " -Xmx4g -Dspark.master=local:4"
 
 }
 
 object LocalTest extends SimpleTest with LocalRunner with NotebookRunner {
+
+}
+
+object ChildJvmTest extends SimpleTest with ChildJvmRunner with NotebookRunner {
 
 }
 

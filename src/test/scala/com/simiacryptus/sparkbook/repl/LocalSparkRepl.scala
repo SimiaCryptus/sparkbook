@@ -17,14 +17,8 @@
  * under the License.
  */
 
-package com.simiacryptus.sparkbook
+package com.simiacryptus.sparkbook.repl
 
-object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
+import com.simiacryptus.sparkbook.{LocalRunner, NotebookRunner}
 
-  override def numberOfWorkersPerNode: Int = 2
-
-  override def workerMemory: String = "8g"
-
-}
-
-
+object LocalSparkRepl extends SparkRepl with LocalRunner with NotebookRunner

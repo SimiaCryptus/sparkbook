@@ -22,6 +22,5 @@ package com.simiacryptus.sparkbook
 import org.slf4j.LoggerFactory
 
 trait Logging {
-  protected[this] lazy val logger = LoggerFactory.getLogger(getClass)
-
+  @transient protected[this] lazy val logger = LoggerFactory.getLogger(getClass)
 }

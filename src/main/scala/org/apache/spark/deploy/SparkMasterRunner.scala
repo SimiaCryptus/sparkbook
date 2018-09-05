@@ -82,7 +82,7 @@ case class SparkMasterRunner
     } catch {
       case e: Throwable => logger.error("Error running spark master", e)
     } finally {
-      EC2Runner.logger.info("Exiting spark master")
+      logger.info("Exiting spark master")
       System.exit(0)
     }
   }

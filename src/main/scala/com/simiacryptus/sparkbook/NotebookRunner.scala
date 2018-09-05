@@ -21,17 +21,16 @@ package com.simiacryptus.sparkbook
 
 import java.io.File
 
-import com.simiacryptus.sparkbook.EC2Runner.logger
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable}
 
-trait NotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] {
+trait NotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {
   def run(): Unit = {
     try {
       val dateStr = Util.dateStr("yyyyMMddHHmmss")
-      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + testName), testName, 1080, true)
+      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), 1080, true)
       try {
         accept(log)
         logger.info("Finished worker tiledTexturePaintingPhase")
@@ -45,6 +44,6 @@ trait NotebookRunner extends SerializableRunnable with SerializableConsumer[Note
     }
   }
 
-  def testName: String = getClass.getSimpleName
+  def name: String = getClass.getSimpleName
 
 }

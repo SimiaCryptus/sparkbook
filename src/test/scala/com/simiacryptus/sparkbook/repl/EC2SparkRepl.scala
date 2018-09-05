@@ -17,14 +17,23 @@
  * under the License.
  */
 
-package org.apache.spark.util
+package com.simiacryptus.sparkbook.repl
 
-import org.apache.spark.SparkConf
+import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2SparkRunner}
 
-object SparkUtil {
-  val defaults = {
-    val conf = new SparkConf()
-    Utils.loadDefaultSparkProperties(conf, null)
-    conf
-  }
+object EC2SparkRepl extends SparkRepl with EC2SparkRunner with AWSNotebookRunner {
+
+  override def numberOfWorkerNodes: Int = 2
+
+  override def numberOfWorkersPerNode: Int = 2
+
+  override def driverMemory: String = "8g"
+
+  override def workerMemory: String = "8g"
+
+  override def masterSettings: EC2NodeSettings = EC2NodeSettings.T2_L
+
+  override def workerSettings: EC2NodeSettings = EC2NodeSettings.T2_XL
+
 }

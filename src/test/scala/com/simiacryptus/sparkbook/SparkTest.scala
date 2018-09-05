@@ -19,54 +19,89 @@
 
 package com.simiacryptus.sparkbook
 
+import java.awt.Desktop
+import java.io.File
 import java.util.UUID
 
+import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.sparkbook.repl.SparkRepl._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.SerializableConsumer
-import org.apache.spark.SparkContext
-import org.apache.spark.deploy.LocalAppSettings
-import org.apache.spark.rdd.RDD
-import Java8Util._
+import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
-import scala.collection.JavaConverters._
+object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
 
-abstract class SparkTest extends SerializableConsumer[NotebookOutput]() {
+object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
+
+  override def numberOfWorkersPerNode: Int = 2
+
+  override def workerMemory: String = "2g"
+
+}
+
+object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
+
+  override def numberOfWorkerNodes: Int = 2
+
+  override def numberOfWorkersPerNode: Int = 2
+
+  override def driverMemory: String = "2g"
+
+  override def workerMemory: String = "2g"
+
+  override def masterSettings: EC2NodeSettings = EC2NodeSettings.T2_L
+
+  override def workerSettings: EC2NodeSettings = EC2NodeSettings.T2_L
+
+}
+
+abstract class SparkTest extends SerializableConsumer[NotebookOutput]() with Logging {
+
   override def accept(log: NotebookOutput): Unit = {
-    log.eval(() => {
-      ScalaJson.toJson(System.getProperties.asScala.toArray.toMap)
-    })
-    val context = SparkContext.getOrCreate()
-    log.eval(() => {
-      context.getConf.toDebugString
-    })
-    log.eval(() => {
-      ScalaJson.toJson(context.getExecutorMemoryStatus)
-    })
-
-
-    var n = 100000
-    while (n < 1000000000) {
+    Thread.sleep(30000)
+    distribute(log, (log: NotebookOutput, i: Long) => {
       log.eval(() => {
-        n.toString
+        println(s"Hello World (from partition $i)")
+        ScalaJson.toJson(LocalAppSettings.read())
       })
-      val uuids: RDD[UUID] = log.eval(() => {
-        context.range(0, n, 1).map(x => UUID.randomUUID()).cache()
-      })
-      log.eval(() => {
-        ScalaJson.toJson(uuids.map(_.toString).sortBy(_.toString, true).take(100))
-      })
-      n = n * 10
+    })
+  }
 
-      log.eval(() => {
-        def numberOfWorkers = context.getExecutorMemoryStatus.size
+  def distribute(log: NotebookOutput, fn: (NotebookOutput, Long) => Unit) = {
+    val parentArchive = log.getArchiveHome
+    val spark = SparkSession.builder().getOrCreate()
+    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
+    val ids = spark.sparkContext.range(0, numberOfWorkers).repartition(numberOfWorkers).map(i => {
+      val childName = UUID.randomUUID().toString
+      try {
+        new AWSNotebookRunner {
 
-        def workerRdd = context.parallelize((0 until numberOfWorkers).toList, numberOfWorkers)
+          override def shutdownOnQuit: Boolean = false
 
-        ScalaJson.toJson(workerRdd.map(x => LocalAppSettings.read())
-          .collect().groupBy(x => x).mapValues(_.size).toList
-        )
-      })
+          override def s3bucket: String = if (parentArchive.getScheme.startsWith("s3")) parentArchive.getHost else null
 
+          override def emailAddress: String = null
+
+          override def accept(log: NotebookOutput): Unit = {
+            log.setAutobrowse(false)
+            log.setArchiveHome(parentArchive)
+            log.setName(childName)
+            fn(log, i)
+          }
+        }.run()
+      } catch {
+        case e: Throwable => logger.warn("Error in worker", e)
+      }
+      childName
+    }).collect().toList
+    for (id <- ids) {
+      val root = log.getRoot
+      log.p("Subreport: %s %s %s %s", id,
+        log.link(new File(root, id + ".md"), "markdown"),
+        log.link(new File(root, id + ".html"), "html"),
+        log.link(new File(root, id + ".pdf"), "pdf"))
     }
   }
 }

@@ -43,8 +43,7 @@ import org.slf4j.LoggerFactory
 /**
   * The type Ec 2 runner.
   */
-object EC2Runner extends EC2RunnerLike {
-  val logger = LoggerFactory.getLogger(classOf[EC2Runner])
+object EC2Runner extends EC2RunnerLike with Logging {
 
   /**
     * Gets ec 2.
@@ -121,7 +120,7 @@ object EC2Runner extends EC2RunnerLike {
       EC2Runner.browse(new URI(String.format("http://%s:" + port + "/", node.getStatus.getPublicDnsName)))
     catch {
       case e: Throwable =>
-        EC2Runner.logger.info("Error opening browser", e)
+        logger.info("Error opening browser", e)
     }
   }
 
@@ -171,6 +170,7 @@ object EC2Runner extends EC2RunnerLike {
 }
 
 trait EC2Runner extends BaseRunner {
+  Tendril.getKryo.copy(this)
   lazy val (envSettings, s3bucket, emailAddress) = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)

@@ -22,52 +22,67 @@ package com.simiacryptus.sparkbook
 import java.io.{File, IOException}
 import java.net.{URI, URISyntaxException, URL}
 import java.util
-import java.util.Date
+import java.util.{Date, UUID}
 import java.util.regex.Pattern
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.simiacryptus.aws._
-import com.simiacryptus.sparkbook.EC2Runner.logger
 import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.io.NotebookOutput
+import com.simiacryptus.util.Util
+import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable}
 import org.apache.commons.io.{FileUtils, IOUtils}
 
+object AWSNotebookRunner {
+  val runtimeId = UUID.randomUUID().toString
+}
 
-trait AWSNotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] {
+trait AWSNotebookRunner extends InnerAWSNotebookRunner {
   def s3bucket: String
 
+  override def s3home: URI = {
+    val dateStr = Util.dateStr("yyyyMMddHHmmss")
+    URI.create(s"s3://${s3bucket}/reports/$dateStr/")
+  }
+}
+
+trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {
+
+  def shutdownOnQuit = true
   def emailAddress: String
 
-  Tendril.getKryo.copy(this)
+  def s3home: URI
 
   def run(): Unit = {
     try {
       val startTime = System.currentTimeMillis
       new NotebookRunner() {
         override def accept(log: NotebookOutput): Unit = {
-          log.onComplete((workingDir: File) => {
-            EC2Runner.logFiles(workingDir)
-            val uploads = S3Util.upload(EC2Runner.s3, s3bucket, "reports/", workingDir)
-            sendCompleteEmail(testName, workingDir, uploads, startTime)
+          log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
+          log.onComplete(() => {
+            EC2Runner.logFiles(log.getRoot)
+            val uploads = S3Util.upload(EC2Runner.s3, log.asInstanceOf[MarkdownNotebookOutput].getArchiveHome, log.getRoot)
+            sendCompleteEmail(name, log.getRoot, uploads, startTime)
           })
           try
-            sendStartEmail(testName, this)
+            sendStartEmail(name, this)
           catch {
             case e@(_: IOException | _: URISyntaxException) =>
               throw new RuntimeException(e)
           }
-          AWSNotebookRunner.this.accept(log)
+          InnerAWSNotebookRunner.this.accept(log)
           log.setFrontMatterProperty("status", "OK")
         }
 
-        override def testName = EC2Runner.getTestName(AWSNotebookRunner.this)
+        override def name = EC2Runner.getTestName(InnerAWSNotebookRunner.this)
       }.run()
     }
     finally {
-      EC2Runner.logger.info("Exiting node worker")
-      System.exit(0)
+      if (shutdownOnQuit) {
+        logger.info("Exiting node worker")
+        System.exit(0)
+      }
     }
   }
 
@@ -93,11 +108,11 @@ trait AWSNotebookRunner extends SerializableRunnable with SerializableConsumer[N
         val imageFile = new File(workingDir, group).getAbsoluteFile
         val url = uploads.get(imageFile)
         if (null == url) {
-          EC2Runner.logger.info(String.format("No File Found for %s, reverting to %s", imageFile, group))
+          logger.info(String.format("No File Found for %s, reverting to %s", imageFile, group))
           replacedHtml += "\"" + group + "\""
         }
         else {
-          EC2Runner.logger.info(String.format("Rewriting %s to %s at %s", group, imageFile, url))
+          logger.info(String.format("Rewriting %s to %s at %s", group, imageFile, url))
           replacedHtml += "\"" + url + "\""
         }
         start = matcher.end

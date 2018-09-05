@@ -1,9 +1,8 @@
-package org.apache.spark.deploy
+package com.simiacryptus.sparkbook
 
 import java.io.File
 import java.nio.charset.Charset
 
-import com.simiacryptus.sparkbook.Logging
 import com.simiacryptus.util.io.ScalaJson
 import org.apache.commons.io.FileUtils
 

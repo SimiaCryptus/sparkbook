@@ -17,23 +17,16 @@
  * under the License.
  */
 
-package com.simiacryptus.sparkbook
+package com.simiacryptus.sparkbook.repl
 
-import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.{EmbeddedSparkRunner, NotebookRunner}
 
-object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
-  //  nodeSettings = EC2NodeSettings.T2_L,
-  //  klass = classOf[SparkTest]
-  override def numberOfWorkerNodes: Int = 2
+object EmbeddedSparkRepl extends SparkRepl with EmbeddedSparkRunner with NotebookRunner {
 
   override def numberOfWorkersPerNode: Int = 2
 
-  override def driverMemory: String = "8g"
-
   override def workerMemory: String = "8g"
 
-  override def masterSettings: EC2NodeSettings = EC2NodeSettings.T2_L
-
-  override def workerSettings: EC2NodeSettings = EC2NodeSettings.T2_XL
-
 }
+
+

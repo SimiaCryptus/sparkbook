@@ -126,7 +126,7 @@ case class SparkSlaveRunner
     } catch {
       case e: Throwable => logger.error("Error running spark slave", e)
     } finally {
-      EC2Runner.logger.info("Exiting spark slave")
+      logger.info("Exiting spark slave")
       System.exit(0)
     }
   }

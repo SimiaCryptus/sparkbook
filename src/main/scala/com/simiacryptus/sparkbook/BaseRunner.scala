@@ -39,7 +39,7 @@ trait BaseRunner extends SerializableRunnable {
     join(node)
   }
 
-  def runner: EC2RunnerLike
+  @transient def runner: EC2RunnerLike
 
   def cmdFactory(args: Array[String])(node: EC2Util.EC2Node) = this
 

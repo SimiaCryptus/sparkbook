@@ -57,9 +57,9 @@ case class SparkMasterRunner
   nodeSettings: EC2NodeSettings,
   properties: Map[String, String] = Map.empty,
   hostname: String = InetAddress.getLocalHost.getHostName,
-  override val maxHeap: Option[String] = Option("4g"),
-  override val runner: EC2RunnerLike = EC2Runner
+  override val maxHeap: Option[String] = Option("4g")
 ) extends EC2Runner with Logging {
+  override def runner: EC2RunnerLike = EC2Runner
 
   override def run(): Unit = {
     try {

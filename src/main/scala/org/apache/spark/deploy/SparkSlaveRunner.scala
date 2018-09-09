@@ -75,9 +75,9 @@ case class SparkSlaveRunner
   memory: String = "4g",
   numberOfWorkersPerNode: Int = 1,
   sparkConfig: Map[String, String] = Map.empty,
-  val javaConfig: Map[String, String] = Map.empty,
-  override val runner: EC2RunnerLike = EC2Runner
+  val javaConfig: Map[String, String] = Map.empty
 ) extends EC2Runner with Logging {
+  override def runner: EC2RunnerLike = EC2Runner
   val workerPort: Int = 7078 + Random.nextInt(128)
   val uiPort: Int = 8080 + Random.nextInt(128)
 

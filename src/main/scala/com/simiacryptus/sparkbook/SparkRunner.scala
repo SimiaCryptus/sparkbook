@@ -53,13 +53,16 @@ trait SparkRunner extends SerializableRunnable with Logging {
   def launch(): Unit = {
     val masterRunner = new SparkMasterRunner(
       nodeSettings = masterSettings,
-      runner = runner,
       maxHeap = Option(driverMemory),
       properties = Map(
         "s3bucket" -> envSettings.bucket,
         "spark.executor.memory" -> workerMemory,
         "spark.app.name" -> getClass.getCanonicalName
-      ))
+      )) {
+
+      override def runner: EC2RunnerLike = SparkRunner.this.runner
+
+    }
     val (masterNode, masterControl) = runner.start(
       masterSettings,
       (node: EC2Util.EC2Node) => {
@@ -72,10 +75,9 @@ trait SparkRunner extends SerializableRunnable with Logging {
     EC2Runner.browse(masterNode, 8080)
     val workers = (1 to numberOfWorkerNodes).par.map(f = i => {
       logger.info(s"Starting worker #$i/$numberOfWorkerNodes")
-      val slaveRunner = SparkSlaveRunner(
+      val slaveRunner = new SparkSlaveRunner(
         master = masterUrl,
         nodeSettings = workerSettings,
-        runner = SparkRunner.this.runner,
         memory = workerMemory,
         numberOfWorkersPerNode = SparkRunner.this.numberOfWorkersPerNode,
         sparkConfig = Map(
@@ -86,7 +88,9 @@ trait SparkRunner extends SerializableRunnable with Logging {
         javaConfig = Map(
           "s3bucket" -> envSettings.bucket
         )
-      )
+      ) {
+        override def runner = SparkRunner.this.runner
+      }
       runner.start(
         workerSettings,
         (node: EC2Util.EC2Node) => slaveRunner.copy(hostname = node.getStatus.getPublicDnsName),

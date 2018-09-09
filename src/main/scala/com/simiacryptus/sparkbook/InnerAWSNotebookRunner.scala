@@ -64,12 +64,13 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
         override def accept(log: NotebookOutput): Unit = {
           log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
           log.onComplete(() => {
+            log.write()
             EC2Runner.logFiles(log.getRoot)
             val uploads = S3Util.upload(EC2Runner.s3, log.asInstanceOf[MarkdownNotebookOutput].getArchiveHome, log.getRoot)
-            sendCompleteEmail(name, log.getRoot, uploads, startTime)
+            sendCompleteEmail(log.getName.toString, log.getRoot, uploads, startTime)
           })
           try
-            sendStartEmail(name, this)
+            sendStartEmail(log.getName.toString, this)
           catch {
             case e@(_: IOException | _: URISyntaxException) =>
               throw new RuntimeException(e)
@@ -92,9 +93,12 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
 
   private def sendCompleteEmail(testName: String, workingDir: File, uploads: util.Map[File, URL], startTime: Long): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
+      val reportFile = new File(workingDir, testName + ".html")
+      logger.info(String.format("Emailing report at %s to %s", reportFile, emailAddress))
       var html: String = null
-      try
-        html = FileUtils.readFileToString(new File(workingDir, testName + ".html"), "UTF-8")
+      try {
+        html = FileUtils.readFileToString(reportFile, "UTF-8")
+      }
       catch {
         case e: IOException =>
           html = e.getMessage
@@ -107,15 +111,15 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
         matcher.find(start)
       }) {
         replacedHtml += html.substring(start, matcher.start)
-        val group = matcher.group(1)
-        val imageFile = new File(workingDir, group).getAbsoluteFile
+        val stringLiteralText = matcher.group(1)
+        val imageFile = new File(workingDir, stringLiteralText).getAbsoluteFile
         val url = uploads.get(imageFile)
         if (null == url) {
-          logger.info(String.format("No File Found for %s, reverting to %s", imageFile, group))
-          replacedHtml += "\"" + group + "\""
+          logger.info(String.format("No File Found for %s, reverting to %s", imageFile, stringLiteralText))
+          replacedHtml += "\"" + stringLiteralText + "\""
         }
         else {
-          logger.info(String.format("Rewriting %s to %s at %s", group, imageFile, url))
+          logger.info(String.format("Rewriting %s to %s at %s", stringLiteralText, imageFile, url))
           replacedHtml += "\"" + url + "\""
         }
         start = matcher.end

@@ -177,7 +177,7 @@ trait EC2Runner extends BaseRunner {
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
 
-  override def runner: EC2RunnerLike = EC2Runner
+  @transient override def runner: EC2RunnerLike = EC2Runner
 
 }
 

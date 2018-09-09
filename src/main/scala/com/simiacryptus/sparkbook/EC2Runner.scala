@@ -152,7 +152,6 @@ object EC2Runner extends EC2RunnerLike with Logging {
     tendrilNodeSettings.imageId = nodeSettings.imageId
     tendrilNodeSettings.username = nodeSettings.username
     tendrilNodeSettings.jvmConfig.javaOpts += javaopts
-    tendrilNodeSettings.jvmConfig.javaOpts += " -DGITBASE=\"" + CodeUtil.getGitBase + "\""
     val localControlPort = new Random().nextInt(1024) + 1024
     val node: EC2Util.EC2Node = tendrilNodeSettings.startNode(EC2Runner.ec2, localControlPort)
     val control = Tendril.startRemoteJvm(node, tendrilNodeSettings.jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, tendrilNodeSettings.bucket, workerEnvironment(node))

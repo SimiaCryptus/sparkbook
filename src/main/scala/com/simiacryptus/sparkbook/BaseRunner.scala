@@ -22,7 +22,7 @@ package com.simiacryptus.sparkbook
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril}
 import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
-import com.simiacryptus.util.lang.SerializableRunnable
+import com.simiacryptus.util.lang.{CodeUtil, SerializableRunnable}
 
 trait BaseRunner extends SerializableRunnable {
   def nodeSettings: EC2NodeSettings
@@ -47,13 +47,13 @@ trait BaseRunner extends SerializableRunnable {
     runner.start(nodeSettings, cmdFactory(args), javaopts = javaOpts)
   }
 
-  def maxHeap: Option[String] = Option("50g")
+  def maxHeap: Option[String] = Option("4g")
 
   def javaProperties: Map[String, String] = Map(
     "spark.master" -> "local[4]"
   )
 
-  def javaOpts = List(
+  final def javaOpts = List(
     maxHeap.map("-Xmx" + _).toList,
     javaProperties.map(e => "-D" + e._1 + "=" + e._2).toList
   ).flatten.mkString(" ")

@@ -27,76 +27,9 @@
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/info-${RUN_TYPE}-%d{yyyy-MM-dd-HH-mm}_%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>10</maxHistory>
-        </rollingPolicy>
-    </appender>
+    <logger name="com.simiacryptus" level="INFO"/>
 
-    <appender name="REPORT" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/report-${RUN_TYPE}-%d{yyyy-MM-dd-HH-mm}_%i.md</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>10</maxHistory>
-        </rollingPolicy>
-    </appender>
-
-    <appender name="FILE_MEM" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/mem-${RUN_TYPE}-%d{yyyy-MM-dd-HH-mm}_%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>100</maxHistory>
-        </rollingPolicy>
-    </appender>
-
-    <appender name="FILE_MEMIO" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <encoder>
-            <pattern>%msg%n</pattern>
-        </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>logs/mem-io-${RUN_TYPE}-%d{yyyy-MM-dd-HH-mm}_%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>10MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <maxHistory>100</maxHistory>
-        </rollingPolicy>
-    </appender>
-
-    <!--
-    -->
-    <logger name="com.simiacryptus.mindseye.lang.cudnn.CudaTensorList" level="debug" additivity="false">
-        <appender-ref ref="FILE_MEMIO"/>
-    </logger>
-
-    <logger name="com.simiacryptus.mindseye.lang.cudnn.MemoryType" level="debug" additivity="false">
-        <appender-ref ref="FILE_MEMIO"/>
-    </logger>
-
-    <logger name="com.simiacryptus.mindseye.lang.ReferenceCountingBase" level="debug" additivity="false">
-        <appender-ref ref="FILE_MEM"/>
-    </logger>
-
-    <logger name="com.simiacryptus" level="info"/>
-
-    <root level="info">
+    <root level="WARN">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE"/>
     </root>
 </configuration>

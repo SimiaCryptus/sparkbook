@@ -22,6 +22,7 @@ package com.simiacryptus.sparkbook
 import java.io.File
 import java.util.UUID
 
+import com.simiacryptus.aws.S3Util
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
@@ -54,51 +55,18 @@ object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner
 
 }
 
+
 abstract class SparkTest extends SerializableConsumer[NotebookOutput]() with Logging {
 
   override def accept(log: NotebookOutput): Unit = {
-    Thread.sleep(30000)
-    distribute(log, (log: NotebookOutput, i: Long) => {
-      log.eval(() => {
-        println(s"Hello World (from partition $i)")
-        ScalaJson.toJson(LocalAppSettings.read())
+    for (i <- 0 until 10) {
+      WorkerRunner.distribute(log, (childLog: NotebookOutput, i: Long) => {
+        childLog.eval(() => {
+          println(s"Hello World (from partition $i)")
+          ScalaJson.toJson(LocalAppSettings.read())
+        })
       })
-    })
-  }
-
-  def distribute(log: NotebookOutput, fn: (NotebookOutput, Long) => Unit) = {
-    val parentArchive = log.getArchiveHome
-    val spark = SparkSession.builder().getOrCreate()
-    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
-    val ids = spark.sparkContext.range(0, numberOfWorkers).repartition(numberOfWorkers).map(i => {
-      val childName = UUID.randomUUID().toString
-      try {
-        new AWSNotebookRunner {
-
-          override def shutdownOnQuit: Boolean = false
-
-          override def s3bucket: String = if (parentArchive.getScheme.startsWith("s3")) parentArchive.getHost else null
-
-          override def emailAddress: String = null
-
-          override def accept(log: NotebookOutput): Unit = {
-            log.setAutobrowse(false)
-            log.setArchiveHome(parentArchive)
-            log.setName(childName)
-            fn(log, i)
-          }
-        }.run()
-      } catch {
-        case e: Throwable => logger.warn("Error in worker", e)
-      }
-      childName
-    }).collect().toList
-    for (id <- ids) {
-      val root = log.getRoot
-      log.p("Subreport: %s %s %s %s", id,
-        log.link(new File(root, id + ".md"), "markdown"),
-        log.link(new File(root, id + ".html"), "html"),
-        log.link(new File(root, id + ".pdf"), "pdf"))
+      Thread.sleep(30000)
     }
   }
 }

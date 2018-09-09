@@ -32,13 +32,15 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
 import scala.reflect.runtime.currentMirror
 import scala.tools.reflect.ToolBox
+
 object SparkRepl {
   val spark = SparkSession.builder().getOrCreate()
+  val sc = spark.sparkContext
 }
 
 import com.simiacryptus.sparkbook.repl.SparkRepl._
 
-abstract class SparkRepl extends SerializableConsumer[NotebookOutput]() {
+class SparkRepl extends SerializableConsumer[NotebookOutput]() {
 
   @transient private lazy val toolbox = currentMirror.mkToolBox()
 
@@ -82,12 +84,10 @@ abstract class SparkRepl extends SerializableConsumer[NotebookOutput]() {
 
   override def accept(log: NotebookOutput): Unit = {
     init()
-    while (true) {
-      def code = {
-        new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).print(
-          defaultCmd).get(inputTimeout, TimeUnit.MINUTES)
-      }
 
+    def code = new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput])
+      .print(defaultCmd).get(inputTimeout, TimeUnit.MINUTES)
+    while (true) {
       try {
         log.eval(() => {
           eval(code)
@@ -100,6 +100,8 @@ abstract class SparkRepl extends SerializableConsumer[NotebookOutput]() {
             || !e.getCause.isInstanceOf[InvocationTargetException]
             || !e.getCause.getCause.getMessage.contains("shutdown")
           ) => // Do Nothing
+      } finally {
+        log.write()
       }
     }
   }

@@ -47,7 +47,11 @@ trait SparkRunner extends SerializableRunnable with Logging {
   def runner: EC2RunnerLike
 
   def main(args: Array[String]): Unit = {
-    launch()
+    try {
+      launch()
+    } catch {
+      case e: Throwable => logger.warn("Error in application", e)
+    }
   }
 
   def launch(): Unit = {
@@ -72,7 +76,7 @@ trait SparkRunner extends SerializableRunnable with Logging {
       javaopts = masterRunner.javaOpts
     )
     masterUrl = "spark://" + masterNode.getStatus.getPublicDnsName + ":7077"
-    EC2Runner.browse(masterNode, 8080)
+    //EC2Runner.browse(masterNode, 8080)
     val workers = (1 to numberOfWorkerNodes).par.map(f = i => {
       logger.info(s"Starting worker #$i/$numberOfWorkerNodes")
       val slaveRunner = new SparkSlaveRunner(
@@ -105,7 +109,7 @@ trait SparkRunner extends SerializableRunnable with Logging {
         thisInstance.run()
       })
       EC2Runner.browse(masterNode, 1080)
-      EC2Runner.browse(masterNode, 4040)
+      //EC2Runner.browse(masterNode, 4040)
       EC2Runner.join(masterNode)
     } finally {
       workers.foreach(_._1.close())

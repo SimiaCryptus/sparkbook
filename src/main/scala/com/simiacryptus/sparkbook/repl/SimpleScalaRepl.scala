@@ -30,12 +30,12 @@ import scala.reflect.runtime.currentMirror
 import scala.tools.reflect.ToolBox
 import scala.tools.nsc.interpreter.IMain
 
-object SimpleRepl {
+object SimpleScalaRepl {
 
   @transient private lazy val engine = new ScriptEngineManager().getEngineByName("scala")
 
   def eval_repl(code: String) = {
-    engine.asInstanceOf[IMain].settings.embeddedDefaults[SimpleRepl]
+    engine.asInstanceOf[IMain].settings.embeddedDefaults[SimpleScalaRepl]
     engine.eval(code)
   }
 
@@ -46,9 +46,9 @@ object SimpleRepl {
   }
 }
 
-import com.simiacryptus.sparkbook.repl.SimpleRepl._
+import com.simiacryptus.sparkbook.repl.SimpleScalaRepl._
 
-class SimpleRepl extends InteractiveSetup {
+class SimpleScalaRepl extends InteractiveSetup {
   val defaultCode = """throw new RuntimeException("End Application")"""
 
   def accept2(log: NotebookOutput): Unit = {

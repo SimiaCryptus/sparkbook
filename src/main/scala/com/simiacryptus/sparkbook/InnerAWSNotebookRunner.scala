@@ -41,10 +41,7 @@ object AWSNotebookRunner {
 trait AWSNotebookRunner extends InnerAWSNotebookRunner {
   def s3bucket: String
 
-  override def s3home: URI = {
-    val dateStr = Util.dateStr("yyyyMMddHHmmss")
-    URI.create(s"s3://${s3bucket}/reports/$dateStr/")
-  }
+  override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/")
 }
 
 trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {
@@ -52,6 +49,7 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
   def shutdownOnQuit = true
   def emailAddress: String
 
+  def autobrowse = true
   def http_port = 1080
   def s3home: URI
 
@@ -59,14 +57,14 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
     try {
       val startTime = System.currentTimeMillis
       val port = http_port
+      val browse = autobrowse
       new NotebookRunner() {
+        override def autobrowse = browse
         override def http_port = port
         override def accept(log: NotebookOutput): Unit = {
           log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
           log.onComplete(() => {
-            log.write()
-            EC2Runner.logFiles(log.getRoot)
-            val uploads = S3Util.upload(EC2Runner.s3, log.asInstanceOf[MarkdownNotebookOutput].getArchiveHome, log.getRoot)
+            val uploads = S3Util.upload(log);
             sendCompleteEmail(log.getName.toString, log.getRoot, uploads, startTime)
           })
           try

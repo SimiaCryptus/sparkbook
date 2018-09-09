@@ -52,12 +52,15 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
   def shutdownOnQuit = true
   def emailAddress: String
 
+  def http_port = 1080
   def s3home: URI
 
   def run(): Unit = {
     try {
       val startTime = System.currentTimeMillis
+      val port = http_port
       new NotebookRunner() {
+        override def http_port = port
         override def accept(log: NotebookOutput): Unit = {
           log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
           log.onComplete(() => {

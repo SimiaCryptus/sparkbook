@@ -19,17 +19,14 @@
 
 package com.simiacryptus.sparkbook
 
-import java.awt.Desktop
 import java.io.File
 import java.util.UUID
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.sparkbook.repl.SparkRepl._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.SerializableConsumer
-import org.apache.spark.sql.{Row, SparkSession}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.SparkSession
 
 object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
 

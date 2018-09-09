@@ -26,10 +26,8 @@ import com.simiacryptus.sparkbook._
 import com.simiacryptus.util.io.StringQuery.SimpleStringQuery
 import com.simiacryptus.util.io._
 import javax.script.ScriptEngineManager
-
 import scala.reflect.runtime.currentMirror
 import scala.tools.reflect.ToolBox
-
 import scala.tools.nsc.interpreter.IMain
 
 object SimpleRepl {
@@ -48,7 +46,7 @@ object SimpleRepl {
   }
 }
 
-import SimpleRepl._
+import com.simiacryptus.sparkbook.repl.SimpleRepl._
 
 class SimpleRepl extends InteractiveSetup {
   val defaultCode = """throw new RuntimeException("End Application")"""

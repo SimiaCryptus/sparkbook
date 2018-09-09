@@ -30,13 +30,13 @@ import com.simiacryptus.util.lang.SerializableRunnable
 import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
 
 trait SparkRunner extends SerializableRunnable with Logging {
-  lazy val (envSettings: AwsTendrilEnvSettings, s3bucket: String, emailAddress: String) = {
+  @transient lazy val (envSettings: AwsTendrilEnvSettings, s3bucket: String, emailAddress: String) = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
-  var emailFiles = false
-  var masterUrl = "local[4]"
+
+  @transient var masterUrl = "local[4]"
 
   def masterSettings: EC2NodeSettings
 

@@ -27,10 +27,12 @@ import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable}
 
 trait NotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {
+  def http_port = 1080
+
   def run(): Unit = {
     try {
       val dateStr = Util.dateStr("yyyyMMddHHmmss")
-      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), 1080, true)
+      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), http_port, true)
       try {
         accept(log)
         logger.info("Finished worker tiledTexturePaintingPhase")

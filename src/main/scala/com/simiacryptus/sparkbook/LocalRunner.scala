@@ -23,7 +23,7 @@ import com.simiacryptus.util.test.SysOutInterceptor
 
 trait LocalRunner extends SerializableRunnable {
   def main(args: Array[String]): Unit = {
-    System.setProperty("spark.master", "local[4]")
+    System.setProperty("spark.master", "local[16]")
     System.setProperty("spark.app.name", "local")
     SysOutInterceptor.INSTANCE.init
     try {

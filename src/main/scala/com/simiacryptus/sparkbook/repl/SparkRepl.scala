@@ -27,17 +27,16 @@ import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.StringQuery.SimpleStringQuery
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.util.lang.SerializableConsumer
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql._
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
 import scala.reflect.runtime.currentMirror
 import scala.tools.reflect.ToolBox
-
 object SparkRepl {
   val spark = SparkSession.builder().getOrCreate()
 }
 
-import SparkRepl._
+import com.simiacryptus.sparkbook.repl.SparkRepl._
 
 abstract class SparkRepl extends SerializableConsumer[NotebookOutput]() {
 
@@ -75,13 +74,19 @@ abstract class SparkRepl extends SerializableConsumer[NotebookOutput]() {
     }
   }
 
+  val defaultCmd =
+    """%sql
+      | SELECT * FROM guids
+      |""".stripMargin
+  val inputTimeout = 60
+
   override def accept(log: NotebookOutput): Unit = {
     init()
     while (true) {
-      def code = new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).print(
-        """%sql
-          |SELECT * FROM guids
-        """.stripMargin).get(1, TimeUnit.MINUTES)
+      def code = {
+        new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).print(
+          defaultCmd).get(inputTimeout, TimeUnit.MINUTES)
+      }
 
       try {
         log.eval(() => {

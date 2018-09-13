@@ -20,60 +20,92 @@
 package com.simiacryptus.sparkbook.repl
 
 import java.lang.reflect.InvocationTargetException
+import java.util
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.util.TableOutput
 import com.simiacryptus.util.io.StringQuery.SimpleStringQuery
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.util.lang.SerializableConsumer
 import org.apache.spark.sql._
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
 import scala.reflect.runtime.currentMirror
 import scala.tools.reflect.ToolBox
 
-object SparkRepl {
-  val spark = SparkSession.builder().getOrCreate()
-  val sc = spark.sparkContext
+object SparkRepl extends SparkSessionProvider {
+  implicit var log: NotebookOutput = null
+
+  def out(frame: DataFrame)(implicit log: NotebookOutput) = {
+    def nameFn(n: String) = {
+      var name = n
+      //while (name.length < 3) name = "_" + name + "_"
+      name
+    }
+
+    val tableOutput = new TableOutput()
+    frame.schema.fields.foreach(f => {
+      tableOutput.schema.put(nameFn(f.name), f.dataType match {
+        case IntegerType => classOf[Integer]
+        case StringType => classOf[String]
+        case _ => classOf[Object]
+      })
+    })
+    frame.limit(100).collect().foreach(row => {
+      val rowData: util.HashMap[CharSequence, AnyRef] = new util.HashMap[CharSequence, AnyRef]()
+      row.schema.fields.zipWithIndex.foreach(tuple => {
+        val (field, fieldIndex) = tuple
+        val value = row.get(fieldIndex)
+        if (null != value) {
+          rowData.put(nameFn(field.name), value.toString)
+        }
+      })
+      tableOutput.putRow(rowData)
+    })
+    log.p(tableOutput.toMarkdownTable)
+  }
+
 }
 
-import com.simiacryptus.sparkbook.repl.SparkRepl._
-
-class SparkRepl extends SerializableConsumer[NotebookOutput]() {
+class SparkRepl extends SerializableConsumer[NotebookOutput]() with SparkSessionProvider {
 
   @transient private lazy val toolbox = currentMirror.mkToolBox()
 
   def eval_scala(code: String) = {
-    toolbox.eval(toolbox.parse(code)).asInstanceOf[Object]
-  }
-
-  def eval(code: String) = {
-    val strings = code.split("\n")
-    val interpreter = strings.head.trim
-    val innercode = strings.tail.mkString("\n")
-    val scalaPreamble =
+    toolbox.eval(toolbox.parse(
       """
         |import org.apache.spark._
         |import org.apache.spark.sql._
         |import com.simiacryptus.sparkbook.repl.SparkRepl._
-      """.stripMargin
+      """.stripMargin + code)).asInstanceOf[Object]
+  }
+
+  val tripleQuote = "\"\"\""
+
+  def eval(code: String): Object = {
+    val strings = code.split("\n")
+    val interpreter = strings.head.trim
+    val innercode = strings.tail.mkString("\n")
     interpreter match {
       case "%sql" =>
-        val quoted = "\"\"\"" + innercode + "\"\"\""
-        eval_scala(scalaPreamble +
-          s"""
-             |val result = spark.sql($quoted)
-             |val rows = result.collect()
-             |println(result.schema.toList.map(_.name).mkString(", "))
-             |println(rows.map(_.toSeq.mkString(", ")).mkString("\\n"))
-             |result.schema
-             |""".stripMargin)
+        eval_sql(innercode)
       case "%scala" =>
-        eval_scala(scalaPreamble + innercode)
+        eval_scala(innercode)
       case _ =>
-        eval_scala(scalaPreamble + code)
+        eval_scala(code)
     }
+  }
+
+  def eval_sql(innercode: String): Object = {
+    innercode.split("""(?<!\\);""").map(_.trim).filterNot(_.isEmpty).map(sql => {
+      eval_scala(
+        s"""
+           |out(spark.sql($tripleQuote$sql$tripleQuote))
+           |""".stripMargin.trim)
+    })
   }
 
   val defaultCmd =
@@ -83,11 +115,13 @@ class SparkRepl extends SerializableConsumer[NotebookOutput]() {
   val inputTimeout = 60
 
   override def accept(log: NotebookOutput): Unit = {
+    SparkRepl.log = log
     init()
 
     def code = new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput])
       .print(defaultCmd).get(inputTimeout, TimeUnit.MINUTES)
-    while (true) {
+
+    while (shouldContinue()) {
       try {
         log.eval(() => {
           eval(code)
@@ -104,6 +138,10 @@ class SparkRepl extends SerializableConsumer[NotebookOutput]() {
         log.write()
       }
     }
+  }
+
+  def shouldContinue() = {
+    true
   }
 
   def init() = {

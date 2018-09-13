@@ -30,11 +30,16 @@ import com.simiacryptus.util.lang.SerializableRunnable
 import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
 
 trait SparkRunner extends SerializableRunnable with Logging {
-  @transient lazy val (envSettings: AwsTendrilEnvSettings, s3bucket: String, emailAddress: String) = {
+
+  @transient private lazy val envTuple = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
+
+  @transient def s3bucket: String = envTuple._2
+
+  @transient def emailAddress: String = envTuple._3
 
   @transient var masterUrl = "local[4]"
 
@@ -59,7 +64,7 @@ trait SparkRunner extends SerializableRunnable with Logging {
       nodeSettings = masterSettings,
       maxHeap = Option(driverMemory),
       properties = Map(
-        "s3bucket" -> envSettings.bucket,
+        "s3bucket" -> s3bucket,
         "spark.executor.memory" -> workerMemory,
         "spark.app.name" -> getClass.getCanonicalName
       )) {
@@ -90,7 +95,7 @@ trait SparkRunner extends SerializableRunnable with Logging {
           "spark.app.name" -> getClass.getCanonicalName
         ),
         javaConfig = Map(
-          "s3bucket" -> envSettings.bucket
+          "s3bucket" -> s3bucket
         )
       ) {
         override def runner = SparkRunner.this.runner

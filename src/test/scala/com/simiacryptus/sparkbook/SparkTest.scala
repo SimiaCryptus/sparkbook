@@ -41,7 +41,7 @@ object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with Noteboo
 
 object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
 
-  override def numberOfWorkerNodes: Int = 2
+  override def numberOfWorkerNodes: Int = 1
 
   override def numberOfWorkersPerNode: Int = 2
 

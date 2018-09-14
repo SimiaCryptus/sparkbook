@@ -24,6 +24,7 @@ import java.io.{File, IOException}
 import java.net.URI
 import java.util
 import java.util.Random
+import java.util.concurrent.{Executors, TimeUnit}
 
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
@@ -38,6 +39,8 @@ import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.{CodeUtil, SerializableConsumer, SerializableRunnable}
 import com.simiacryptus.util.test.SysOutInterceptor
 import org.slf4j.LoggerFactory
+
+import scala.util.{Success, Try}
 
 
 /**
@@ -97,9 +100,26 @@ object EC2Runner extends EC2RunnerLike with Logging {
   SysOutInterceptor.INSTANCE.init
 
   def join(node: EC2Util.EC2Node) = {
-    while ( {
-      "running" == node.getStatus.getState.getName
-    }) Thread.sleep(30 * 1000)
+    import Java8Util._
+    var currentCheck: Try[(String, Long)] = Success("running" -> System.currentTimeMillis())
+    val scheduledExecutorService = Executors.newScheduledThreadPool(1)
+    val scheduledTask = scheduledExecutorService.scheduleAtFixedRate(() => {
+      currentCheck = Try {
+        (node.getStatus.getState.getName, System.currentTimeMillis())
+      }
+    }: Unit, 15, 15, TimeUnit.SECONDS)
+    try {
+      import scala.concurrent.duration._
+      def isRunning = {
+        val (status, time) = currentCheck.get
+        "running" == status && ((System.currentTimeMillis() - time) milliseconds) < (60 seconds)
+      }
+
+      while (isRunning) Thread.sleep(30 * 1000)
+    } finally {
+      scheduledTask.cancel(true)
+      scheduledExecutorService.shutdown()
+    }
   }
 
   /**

@@ -20,7 +20,7 @@
 package com.simiacryptus.sparkbook
 
 import java.io.{File, IOException}
-import java.net.{URI, URISyntaxException, URL}
+import java.net.{InetAddress, URI, URISyntaxException, URL}
 import java.util
 import java.util.{Date, UUID}
 import java.util.regex.Pattern
@@ -33,6 +33,8 @@ import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable}
 import org.apache.commons.io.{FileUtils, IOUtils}
+
+import scala.util.Try
 
 object AWSNotebookRunner {
   val runtimeId = UUID.randomUUID().toString
@@ -144,8 +146,12 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
   @throws[URISyntaxException]
   private def sendStartEmail(testName: String, fn: SerializableConsumer[NotebookOutput]): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
-      val publicHostname = IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/public-hostname"), "UTF-8")
-      val instanceId = IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/instance-id"), "UTF-8")
+      val publicHostname = Try {
+        IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/public-hostname"), "UTF-8")
+      }.getOrElse(InetAddress.getLocalHost.getHostName)
+      val instanceId = Try {
+        IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/instance-id"), "UTF-8")
+      }.getOrElse("??")
       val functionJson = new ObjectMapper().enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL).enable(SerializationFeature.INDENT_OUTPUT).writer.writeValueAsString(fn)
       //https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=i-00651bdfd6121e199
       val html = "<html><body>" + "<p><a href=\"http://" + publicHostname + ":1080/\">The tiledTexturePaintingPhase can be monitored at " + publicHostname + "</a></p><hr/>" + "<p><a href=\"https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=" + instanceId + "\">View instance " + instanceId + " on AWS Console</a></p><hr/>" + "<p>Script Definition:" + "<pre>" + functionJson + "</pre></p>" + "</body></html>"

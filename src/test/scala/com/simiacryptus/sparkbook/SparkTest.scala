@@ -29,7 +29,11 @@ import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.SerializableConsumer
 import org.apache.spark.sql.SparkSession
 
-object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
+object LocalSparkTest extends SparkTest with LocalRunner with AWSNotebookRunner {
+  override def s3bucket: String = "data-88aa1"
+
+  override def emailAddress: String = "acharneski@gmail.com"
+}
 
 object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
 

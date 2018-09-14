@@ -21,6 +21,7 @@ package com.simiacryptus.sparkbook
 
 import java.io.{File, IOException}
 import java.net.{InetAddress, URI, URISyntaxException, URL}
+import java.text.SimpleDateFormat
 import java.util
 import java.util.{Date, UUID}
 import java.util.regex.Pattern
@@ -43,7 +44,7 @@ object AWSNotebookRunner {
 trait AWSNotebookRunner extends InnerAWSNotebookRunner {
   def s3bucket: String
 
-  override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/")
+  override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/" + new SimpleDateFormat("yyyyMMddmmss").format(new Date()) + "/")
 }
 
 trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {

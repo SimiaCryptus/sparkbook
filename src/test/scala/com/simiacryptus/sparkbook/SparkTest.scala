@@ -29,11 +29,7 @@ import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
 import com.simiacryptus.util.lang.SerializableConsumer
 import org.apache.spark.sql.SparkSession
 
-object LocalSparkTest extends SparkTest with LocalRunner with AWSNotebookRunner {
-  override def s3bucket: String = "data-88aa1"
-
-  override def emailAddress: String = "acharneski@gmail.com"
-}
+object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
 
 object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
 
@@ -63,7 +59,7 @@ object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner
 abstract class SparkTest extends SerializableConsumer[NotebookOutput]() with Logging {
 
   override def accept(log: NotebookOutput): Unit = {
-    for (i <- 0 until 10) {
+    for (i <- 0 until 3) {
       WorkerRunner.distribute(log, (childLog: NotebookOutput, i: Long) => {
         childLog.eval(() => {
           println(s"Hello World (from partition $i)")

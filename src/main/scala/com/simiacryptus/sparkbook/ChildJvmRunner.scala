@@ -28,14 +28,13 @@ import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInsta
 import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
-import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.Logging
 
 import scala.collection.JavaConversions._
 import scala.util.Random
 
 trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
-  def workingDir = new File(".")
-
   override lazy val runner: EC2RunnerLike = new EC2RunnerLike with Logging {
     lazy val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts, new util.HashMap[String, String](environment), workingDir)
 
@@ -54,6 +53,8 @@ trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
       }, control)
     }
   }
+
+  def workingDir = new File(".")
 
   override def nodeSettings: EC2NodeSettings = null
 }

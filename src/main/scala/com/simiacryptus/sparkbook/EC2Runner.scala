@@ -29,11 +29,12 @@ import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, AmazonIdentityManagementClientBuilder}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.UserSettings
-import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
 import com.simiacryptus.util.Util
-import com.simiacryptus.util.io.ScalaJson
 import com.simiacryptus.util.test.SysOutInterceptor
 
 import scala.util.{Success, Try}
@@ -71,17 +72,10 @@ object EC2Runner extends Logging {
     (envSettings, envSettings.bucket, load.emailAddress)
   }
 
-  @throws[IOException]
-  def browse(uri: URI): Unit = {
-    if (Util.AUTO_BROWSE && !GraphicsEnvironment.isHeadless && Desktop.isDesktopSupported && Desktop.getDesktop.isSupported(Desktop.Action.BROWSE)) Desktop.getDesktop.browse(uri)
-  }
-
-  SysOutInterceptor.INSTANCE.init
-
   def join(node: EC2Util.EC2Node) = {
-    import Java8Util._
+    import com.simiacryptus.sparkbook.util.Java8Util._
     var currentCheck: Try[(String, Long)] = Success("running" -> System.currentTimeMillis())
-    val scheduledExecutorService = Executors.newScheduledThreadPool(1)
+    val scheduledExecutorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build)
     val scheduledTask = scheduledExecutorService.scheduleAtFixedRate(() => {
       currentCheck = Try {
         (node.getStatus.getState.getName, System.currentTimeMillis())
@@ -101,6 +95,7 @@ object EC2Runner extends Logging {
     }
   }
 
+  SysOutInterceptor.INSTANCE.init
 
   def browse(node: EC2Util.EC2Node, port: Int = 1080): Unit = {
     try
@@ -109,6 +104,11 @@ object EC2Runner extends Logging {
       case e: Throwable =>
         logger.info("Error opening browser", e)
     }
+  }
+
+  @throws[IOException]
+  def browse(uri: URI): Unit = {
+    if (Util.AUTO_BROWSE && !GraphicsEnvironment.isHeadless && Desktop.isDesktopSupported && Desktop.getDesktop.isSupported(Desktop.Action.BROWSE)) Desktop.getDesktop.browse(uri)
   }
 
   /**

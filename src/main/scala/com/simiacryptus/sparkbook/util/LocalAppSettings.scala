@@ -1,9 +1,8 @@
-package com.simiacryptus.sparkbook
+package com.simiacryptus.sparkbook.util
 
 import java.io.File
 import java.nio.charset.Charset
 
-import com.simiacryptus.util.io.ScalaJson
 import org.apache.commons.io.FileUtils
 
 object LocalAppSettings extends Logging {

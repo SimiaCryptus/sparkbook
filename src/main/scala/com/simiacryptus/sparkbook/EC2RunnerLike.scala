@@ -23,8 +23,9 @@ import java.util
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
-import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
+import com.simiacryptus.aws.{EC2Util, TendrilControl}
+import com.simiacryptus.lang.SerializableSupplier
+import com.simiacryptus.sparkbook.util.Logging
 
 trait EC2RunnerLike extends Logging {
   def start
@@ -35,7 +36,7 @@ trait EC2RunnerLike extends Logging {
   ): (EC2Util.EC2Node, TendrilControl)
 
 
-  final def run[T<:AnyRef]
+  final def run[T <: AnyRef]
   (
     nodeSettings: EC2NodeSettings,
     command: EC2Util.EC2Node => SerializableSupplier[T],

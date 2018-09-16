@@ -4,14 +4,12 @@ import java.util.concurrent.TimeUnit
 
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.io.{JsonQuery, MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction}
+import com.simiacryptus.lang.SerializableFunction
+import com.simiacryptus.notebook.{JsonQuery, MarkdownNotebookOutput, NotebookOutput}
+import com.simiacryptus.sparkbook.util.Java8Util._
 
-trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput,T] {
-  def inputTimeoutSeconds = 60
-
-  final override def apply(log: NotebookOutput):T = {
+trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
+  final override def apply(log: NotebookOutput): T = {
     val value = new JsonQuery[InteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
       new ObjectMapper()
         .enable(SerializationFeature.INDENT_OUTPUT)
@@ -22,6 +20,8 @@ trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput,T] {
     }).print(this).get(inputTimeoutSeconds, TimeUnit.SECONDS)
     Option(value).getOrElse(this).accept2(log)
   }
+
+  def inputTimeoutSeconds = 60
 
   def accept2(l: NotebookOutput): T
 }

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.simiacryptus.sparkbook
+package com.simiacryptus.sparkbook.util
 
-import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
+import com.simiacryptus.lang.SerializableSupplier
 import com.simiacryptus.util.test.SysOutInterceptor
 
 trait LocalRunner[T] extends SerializableSupplier[T] {

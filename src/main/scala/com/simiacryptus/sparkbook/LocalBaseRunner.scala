@@ -8,12 +8,10 @@ import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInsta
 import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.lang.{SerializableCallable, SerializableSupplier}
+import com.simiacryptus.lang.SerializableCallable
+import com.simiacryptus.sparkbook.util.Java8Util._
 
 class LocalBaseRunner extends EC2RunnerLike {
-
-  def status = "running"
 
   override def start
   (
@@ -52,4 +50,6 @@ class LocalBaseRunner extends EC2RunnerLike {
       override def run[T](task: SerializableCallable[T]): T = task.call()
     }))
   }
+
+  def status = "running"
 }

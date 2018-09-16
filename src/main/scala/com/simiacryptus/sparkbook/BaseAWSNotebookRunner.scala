@@ -23,37 +23,24 @@ import java.io.{File, IOException}
 import java.net.{InetAddress, URI, URISyntaxException, URL}
 import java.text.SimpleDateFormat
 import java.util
-import java.util.{Date, UUID}
 import java.util.regex.Pattern
+import java.util.{Date, UUID}
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.simiacryptus.aws._
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.Util
-import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction, SerializableRunnable, SerializableSupplier}
+import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
+import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.Logging
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 import scala.util.Try
 
-object AWSNotebookRunner {
-  val runtimeId = UUID.randomUUID().toString
-}
+trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
 
-trait AWSNotebookRunner[T] extends InnerAWSNotebookRunner[T] {
-  def s3bucket: String
-
-  override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/" + new SimpleDateFormat("yyyyMMddmmss").format(new Date()) + "/")
-}
-
-trait InnerAWSNotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput,T] with Logging {
-
-  def shutdownOnQuit = true
   def emailAddress: String
 
-  def autobrowse = true
-  def http_port = 1080
   def s3home: URI
 
   def get(): T = {
@@ -63,7 +50,9 @@ trait InnerAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializabl
       val browse = autobrowse
       new NotebookRunner[T]() {
         override def autobrowse = browse
+
         override def http_port = port
+
         override def apply(log: NotebookOutput): T = {
           log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
           log.onComplete(() => {
@@ -76,12 +65,12 @@ trait InnerAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializabl
             case e@(_: IOException | _: URISyntaxException) =>
               throw new RuntimeException(e)
           }
-          val t = InnerAWSNotebookRunner.this.apply(log)
+          val t = BaseAWSNotebookRunner.this.apply(log)
           log.setFrontMatterProperty("status", "OK")
           t
         }
 
-        override def name = EC2Runner.getTestName(InnerAWSNotebookRunner.this)
+        override def name = EC2Runner.getTestName(BaseAWSNotebookRunner.this)
       }.get()
     }
     finally {
@@ -92,6 +81,11 @@ trait InnerAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializabl
     }
   }
 
+  def shutdownOnQuit = true
+
+  def autobrowse = true
+
+  def http_port = 1080
 
   private def sendCompleteEmail(testName: String, workingDir: File, uploads: util.Map[File, URL], startTime: Long): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
@@ -146,7 +140,7 @@ trait InnerAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializabl
 
   @throws[IOException]
   @throws[URISyntaxException]
-  private def sendStartEmail(testName: String, fn: SerializableFunction[NotebookOutput,_]): Unit = {
+  private def sendStartEmail(testName: String, fn: SerializableFunction[NotebookOutput, _]): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
       val publicHostname = Try {
         IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/public-hostname"), "UTF-8")

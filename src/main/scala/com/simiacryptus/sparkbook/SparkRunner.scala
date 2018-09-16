@@ -25,9 +25,9 @@ import java.util
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.aws.{AwsTendrilEnvSettings, AwsTendrilNodeSettings, EC2Util, SESUtil}
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.io.ScalaJson
-import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
+import com.simiacryptus.lang.SerializableSupplier
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
 import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
 
 trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
@@ -37,18 +37,13 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
-
-  @transient def s3bucket: String = envTuple._2
+  @transient var masterUrl = "local[4]"
 
   @transient def emailAddress: String = envTuple._3
-
-  @transient var masterUrl = "local[4]"
 
   def masterSettings: EC2NodeSettings
 
   def workerSettings: EC2NodeSettings
-
-  def numberOfWorkersPerNode: Int = 1
 
   def runner: EC2RunnerLike
 
@@ -80,7 +75,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
         masterRunner.copy(hostname = node.getStatus.getPublicDnsName)
       },
       javaopts = masterRunner.javaOpts,
-      workerEnvironment = _=>new util.HashMap[String,String]()
+      workerEnvironment = _ => new util.HashMap[String, String]()
     )
     masterUrl = "spark://" + masterNode.getStatus.getPublicDnsName + ":7077"
     //EC2Runner.browse(masterNode, 8080)
@@ -108,7 +103,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
           slaveRunner.copy(hostname = node.getStatus.getPublicDnsName)
         },
         javaopts = slaveRunner.javaOpts,
-        workerEnvironment = (node:EC2Util.EC2Node)=>new util.HashMap[String,String]()
+        workerEnvironment = (node: EC2Util.EC2Node) => new util.HashMap[String, String]()
       )
     }).toList
     try {
@@ -125,6 +120,10 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
       workers.foreach(_._1.close())
     }
   }
+
+  @transient def s3bucket: String = envTuple._2
+
+  def numberOfWorkersPerNode: Int = 1
 
   def numberOfWorkerNodes: Int = 1
 

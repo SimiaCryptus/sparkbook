@@ -20,9 +20,8 @@
 package com.simiacryptus.sparkbook
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
 
-trait EmbeddedRunner[T<:AnyRef] extends BaseRunner[T] {
+trait EmbeddedRunner[T <: AnyRef] extends BaseRunner[T] {
   override def runner: EC2RunnerLike = new LocalBaseRunner
 
   override def nodeSettings: EC2NodeSettings = null

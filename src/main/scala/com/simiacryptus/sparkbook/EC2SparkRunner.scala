@@ -19,7 +19,7 @@
 
 package com.simiacryptus.sparkbook
 
-import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.sparkbook.util.Java8Util._
 
 trait EC2SparkRunner[T <: AnyRef] extends SparkRunner[T] {
   override def runner: EC2RunnerLike = new DefaultEC2Runner

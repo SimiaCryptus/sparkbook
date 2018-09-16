@@ -21,16 +21,13 @@ package com.simiacryptus.sparkbook
 
 import java.io.File
 
-import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
+import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.Logging
 import com.simiacryptus.util.Util
-import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction, SerializableRunnable, SerializableSupplier}
 
-trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput,T] with Logging {
-  def http_port = 1080
-
-  def autobrowse = true
-
+trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
   def get(): T = {
     try {
       val dateStr = Util.dateStr("yyyyMMddHHmmss")
@@ -50,6 +47,10 @@ trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunctio
         throw e
     }
   }
+
+  def http_port = 1080
+
+  def autobrowse = true
 
   def name: String = getClass.getSimpleName
 

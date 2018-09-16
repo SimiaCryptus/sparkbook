@@ -19,15 +19,11 @@
 
 package com.simiacryptus.sparkbook
 
-import java.io.File
-import java.util.UUID
-
-import com.simiacryptus.aws.S3Util
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction}
-import org.apache.spark.sql.SparkSession
+import com.simiacryptus.lang.SerializableFunction
+import com.simiacryptus.notebook.NotebookOutput
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.{LocalAppSettings, LocalRunner, Logging, ScalaJson}
 
 object LocalSparkTest extends SparkTest with LocalRunner[Object] with NotebookRunner[Object]
 
@@ -65,8 +61,8 @@ abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] wi
           println(s"Hello World (from partition $i)")
           ScalaJson.toJson(LocalAppSettings.read())
         })
-        LocalAppSettings.read().get("worker.index").foreach(idx=>{
-          System.setProperty("CUDA_DEVICES",idx)
+        LocalAppSettings.read().get("worker.index").foreach(idx => {
+          System.setProperty("CUDA_DEVICES", idx)
         })
       })(log)
       Thread.sleep(30000)

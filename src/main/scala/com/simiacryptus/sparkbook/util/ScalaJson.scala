@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.simiacryptus.util.io
+package com.simiacryptus.sparkbook.util
 
 import java.io.{ByteArrayOutputStream, File, IOException}
 import java.nio.charset.Charset
@@ -28,7 +28,7 @@ import com.amazonaws.util.StringInputStream
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.gson.{JsonArray, JsonPrimitive}
-import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.sparkbook.util.Java8Util._
 import javax.annotation.{Nonnull, Nullable}
 import org.apache.commons.io.FileUtils
 
@@ -77,6 +77,24 @@ object ScalaJson {
     array
   }
 
+  @Nonnull def fromJson[T](str: String, obj: Class[T], objectMapper: ObjectMapper = getMapper): T = {
+    val outputStream = new StringInputStream(str)
+    try
+      objectMapper.readValue(outputStream, obj)
+    catch {
+      case e: IOException =>
+        throw new RuntimeException(e)
+    }
+  }
+
+  @throws[IOException]
+  def cache[T](file: File, clazz: Class[T], intializer: Supplier[T]): T = if (file.exists) getMapper.readValue(FileUtils.readFileToString(file, Charset.defaultCharset), clazz)
+  else {
+    val obj = intializer.get
+    FileUtils.write(file, toJson(obj), Charset.defaultCharset)
+    obj
+  }
+
   /**
     * Write json.
     *
@@ -94,24 +112,6 @@ object ScalaJson {
         throw new RuntimeException(e)
     }
     new String(outputStream.toByteArray, Charset.forName("UTF-8"))
-  }
-
-  @Nonnull def fromJson[T](str: String, obj: Class[T], objectMapper: ObjectMapper = getMapper): T = {
-    val outputStream = new StringInputStream(str)
-    try
-      objectMapper.readValue(outputStream, obj)
-    catch {
-      case e: IOException =>
-        throw new RuntimeException(e)
-    }
-  }
-
-  @throws[IOException]
-  def cache[T](file: File, clazz: Class[T], intializer: Supplier[T]): T = if (file.exists) getMapper.readValue(FileUtils.readFileToString(file, Charset.defaultCharset), clazz)
-  else {
-    val obj = intializer.get
-    FileUtils.write(file, toJson(obj), Charset.defaultCharset)
-    obj
   }
 
   /**

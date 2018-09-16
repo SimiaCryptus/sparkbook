@@ -6,7 +6,8 @@ import java.util.Random
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{AwsTendrilNodeSettings, EC2Util, Tendril, TendrilControl}
-import Java8Util._
+import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.sparkbook.util.Logging
 
 /**
   * The type Ec 2 runner.

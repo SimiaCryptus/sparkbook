@@ -24,12 +24,10 @@ import java.util
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
-import com.simiacryptus.sparkbook.Java8Util._
-import com.simiacryptus.util.TableOutput
-import com.simiacryptus.util.io.StringQuery.SimpleStringQuery
-import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction}
+import com.simiacryptus.lang.SerializableFunction
+import com.simiacryptus.notebook.StringQuery.SimpleStringQuery
+import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput, TableOutput}
+import com.simiacryptus.sparkbook.util.Java8Util._
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
@@ -70,44 +68,10 @@ object SparkRepl extends SparkSessionProvider {
 
 }
 
-class SparkRepl extends SerializableFunction[NotebookOutput,Object] with SparkSessionProvider {
+class SparkRepl extends SerializableFunction[NotebookOutput, Object] with SparkSessionProvider {
 
   @transient private lazy val toolbox = currentMirror.mkToolBox()
-
-  def eval_scala(code: String) = {
-    toolbox.eval(toolbox.parse(
-      """
-        |import org.apache.spark._
-        |import org.apache.spark.sql._
-        |import com.simiacryptus.sparkbook.repl.SparkRepl._
-      """.stripMargin + code)).asInstanceOf[Object]
-  }
-
   val tripleQuote = "\"\"\""
-
-  def eval(code: String): Object = {
-    val strings = code.split("\n")
-    val interpreter = strings.head.trim
-    val innercode = strings.tail.mkString("\n")
-    interpreter match {
-      case "%sql" =>
-        eval_sql(innercode)
-      case "%scala" =>
-        eval_scala(innercode)
-      case _ =>
-        eval_scala(code)
-    }
-  }
-
-  def eval_sql(innercode: String): Object = {
-    innercode.split("""(?<!\\);""").map(_.trim).filterNot(_.isEmpty).map(sql => {
-      eval_scala(
-        s"""
-           |out(spark.sql($tripleQuote$sql$tripleQuote))
-           |""".stripMargin.trim)
-    })
-  }
-
   val defaultCmd =
     """%sql
       | SELECT * FROM guids
@@ -139,6 +103,38 @@ class SparkRepl extends SerializableFunction[NotebookOutput,Object] with SparkSe
       }
     }
     null
+  }
+
+  def eval(code: String): Object = {
+    val strings = code.split("\n")
+    val interpreter = strings.head.trim
+    val innercode = strings.tail.mkString("\n")
+    interpreter match {
+      case "%sql" =>
+        eval_sql(innercode)
+      case "%scala" =>
+        eval_scala(innercode)
+      case _ =>
+        eval_scala(code)
+    }
+  }
+
+  def eval_sql(innercode: String): Object = {
+    innercode.split("""(?<!\\);""").map(_.trim).filterNot(_.isEmpty).map(sql => {
+      eval_scala(
+        s"""
+           |out(spark.sql($tripleQuote$sql$tripleQuote))
+           |""".stripMargin.trim)
+    })
+  }
+
+  def eval_scala(code: String) = {
+    toolbox.eval(toolbox.parse(
+      """
+        |import org.apache.spark._
+        |import org.apache.spark.sql._
+        |import com.simiacryptus.sparkbook.repl.SparkRepl._
+      """.stripMargin + code)).asInstanceOf[Object]
   }
 
   def shouldContinue() = {

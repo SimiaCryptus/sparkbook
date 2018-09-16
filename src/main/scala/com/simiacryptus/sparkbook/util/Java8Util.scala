@@ -17,11 +17,11 @@
  * under the License.
  */
 
-package com.simiacryptus.sparkbook
+package com.simiacryptus.sparkbook.util
 
-import java.util.function.{BiFunction, BinaryOperator, DoubleSupplier, DoubleUnaryOperator, Function, IntToDoubleFunction, IntUnaryOperator, Predicate, Supplier, ToDoubleBiFunction, ToDoubleFunction}
+import java.util.function._
 
-import com.simiacryptus.util.lang._
+import com.simiacryptus.lang._
 
 object Java8Util {
 
@@ -30,15 +30,16 @@ object Java8Util {
       override def applyAsDouble(v: Int): Double = fn(v)
     }
   }
+
   implicit def cvt(fn: Int ⇒ Int): IntUnaryOperator = {
     new IntUnaryOperator {
       override def applyAsInt(operand: Int): Int = fn.apply(operand)
     }
   }
 
-  implicit def cvt[T <: AnyRef, U <: AnyRef](fn: T ⇒ U): SerializableFunction[T,U] = {
-    new SerializableFunction[T,U] {
-      override def apply(x:T): U = fn.apply(x)
+  implicit def cvt[T <: AnyRef, U <: AnyRef](fn: T ⇒ U): SerializableFunction[T, U] = {
+    new SerializableFunction[T, U] {
+      override def apply(x: T): U = fn.apply(x)
     }
   }
 
@@ -78,15 +79,15 @@ object Java8Util {
     }
   }
 
-  implicit def cvt[T <: AnyRef,U<:AnyRef,R<:AnyRef](fn: (T,U) ⇒ R): BiFunction[T,U,R] = {
-    new BiFunction[T,U,R] {
-      override def apply(t: T, u: U) = fn.apply(t,u)
+  implicit def cvt[T <: AnyRef, U <: AnyRef, R <: AnyRef](fn: (T, U) ⇒ R): BiFunction[T, U, R] = {
+    new BiFunction[T, U, R] {
+      override def apply(t: T, u: U) = fn.apply(t, u)
     }
   }
 
-  implicit def cvt[T <: AnyRef](fn: (T,T) ⇒ T): BinaryOperator[T] = {
-    new BinaryOperator[T]{
-      override def apply(t: T, u: T) = fn.apply(t,u)
+  implicit def cvt[T <: AnyRef](fn: (T, T) ⇒ T): BinaryOperator[T] = {
+    new BinaryOperator[T] {
+      override def apply(t: T, u: T) = fn.apply(t, u)
     }
   }
 
@@ -108,7 +109,7 @@ object Java8Util {
     }
   }
 
-  implicit def cvt[T,U](fn: (T, U) ⇒ Double): ToDoubleBiFunction[T, U] = {
+  implicit def cvt[T, U](fn: (T, U) ⇒ Double): ToDoubleBiFunction[T, U] = {
     new ToDoubleBiFunction[T, U] {
       override def applyAsDouble(v: T, u: U): Double = fn(v, u)
     }

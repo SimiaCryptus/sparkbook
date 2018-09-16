@@ -23,23 +23,31 @@ import java.io.{File, FileOutputStream}
 import java.net.InetAddress
 import java.nio.charset.Charset
 import java.util
-import java.util.concurrent.Future
 import java.util.zip.ZipFile
 
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
-import com.simiacryptus.aws.{ClasspathUtil, EC2Util, TendrilControl}
 import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.aws.{ClasspathUtil, EC2Util}
+import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook._
-import Java8Util._
-import com.simiacryptus.util.io.ScalaJson
+import com.simiacryptus.sparkbook.util.{LocalAppSettings, Logging}
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 import scala.collection.JavaConverters._
 import scala.util.Random
 
 object SparkSlaveRunner extends Logging {
+  lazy val s3 = {
+    AmazonS3ClientBuilder.standard.withRegion(Regions.US_WEST_2).build
+  }
+
+  def stage(bucket: String, key: String) = {
+    //logger.info(s"Staging $bucket/$key")
+    stageZip(new GetObjectRequest(bucket, key))
+  }
+
   def stageZip(request: GetObjectRequest, stagingName: String = "temp.zip", localRoot: File = new File(".").getAbsoluteFile): Boolean = {
     val zipfile = new File(localRoot, stagingName)
     s3.getObject(request, zipfile)
@@ -58,15 +66,6 @@ object SparkSlaveRunner extends Logging {
     zipfile.delete()
   }
 
-  lazy val s3 = {
-    AmazonS3ClientBuilder.standard.withRegion(Regions.US_WEST_2).build
-  }
-
-  def stage(bucket: String, key: String) = {
-    //logger.info(s"Staging $bucket/$key")
-    stageZip(new GetObjectRequest(bucket, key))
-  }
-
 }
 
 case class SparkSlaveRunner
@@ -79,9 +78,10 @@ case class SparkSlaveRunner
   sparkConfig: Map[String, String] = Map.empty,
   val javaConfig: Map[String, String] = Map.empty
 ) extends EC2Runner[Object] with Logging {
-  override def runner: EC2RunnerLike = new DefaultEC2Runner
   val workerPort: Int = 7078 + Random.nextInt(128)
   val uiPort: Int = 8080 + Random.nextInt(128)
+
+  override def runner: EC2RunnerLike = new DefaultEC2Runner
 
   override def main(args: Array[String]): Unit = {
     val workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = (node: EC2Util.EC2Node) => new util.HashMap[String, String](Map(
@@ -91,12 +91,12 @@ case class SparkSlaveRunner
       "SPARK_WORKER_MEMORY" -> memory,
       "SPARK_WORKER_INSTANCES" -> numberOfWorkersPerNode.toString
     ).asJava)
-    val (node:EC2Util.EC2Node, _, _) = runner.run[Object](
+    val (node: EC2Util.EC2Node, _, _) = runner.run[Object](
       nodeSettings = nodeSettings,
-      command = (node:EC2Util.EC2Node) => ()=>{
+      command = (node: EC2Util.EC2Node) => () => {
         this.get()
         null
-      }:Object,
+      }: Object,
       javaopts = javaOpts,
       workerEnvironment = workerEnvironment
     )
@@ -138,6 +138,16 @@ case class SparkSlaveRunner
     null
   }
 
+  final def copyFile(src: File, dest: File, retries: Int = 2): Unit = {
+    try {
+      if (!dest.getAbsoluteFile.equals(src.getAbsoluteFile)) FileUtils.copyFile(src, dest)
+    } catch {
+      case e: Throwable if (retries > 0) =>
+        Thread.sleep(100)
+        copyFile(src, dest, retries - 1)
+    }
+  }
+
   private def prepareWorkingDirectory(workingDir: File, workerNumber: Int) = {
     //EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
     val scalaAssemblyJars = new File(workingDir, "assembly/target/scala-2.11/jars")
@@ -169,16 +179,6 @@ case class SparkSlaveRunner
     LocalAppSettings.write(Map(
       "worker.index" -> workerNumber.toString
     ), workingDir)
-  }
-
-  final def copyFile(src: File, dest: File, retries: Int = 2): Unit = {
-    try {
-      if (!dest.getAbsoluteFile.equals(src.getAbsoluteFile)) FileUtils.copyFile(src, dest)
-    } catch {
-      case e: Throwable if (retries > 0) =>
-        Thread.sleep(100)
-        copyFile(src, dest, retries - 1)
-    }
   }
 
 

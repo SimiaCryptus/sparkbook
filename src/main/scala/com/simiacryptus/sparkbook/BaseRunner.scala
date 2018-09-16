@@ -24,12 +24,13 @@ import java.util
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.aws.{EC2Util, TendrilControl}
+import com.simiacryptus.lang.SerializableSupplier
 import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
-import com.simiacryptus.util.lang.{CodeUtil, SerializableRunnable, SerializableSupplier}
+
 import scala.collection.JavaConversions._
 
-trait BaseRunner[T<:AnyRef] extends SerializableSupplier[T] {
+trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   def nodeSettings: EC2NodeSettings
 
   def exe(args: String*): T = {
@@ -44,16 +45,19 @@ trait BaseRunner[T<:AnyRef] extends SerializableSupplier[T] {
     join(node)
   }
 
-  @transient def runner: EC2RunnerLike
+  def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
+    new File("launcher/target/scala-2.11").mkdirs()
+    runner.run(nodeSettings, cmdFactory(args), javaopts = javaOpts, _ => new util.HashMap[String, String](environment))
+  }
 
   def cmdFactory(args: Array[String])(node: EC2Util.EC2Node) = this
 
-  def environment: Map[String, String] = Map("SPARK_HOME"->".")
+  def environment: Map[String, String] = Map("SPARK_HOME" -> ".")
 
-  def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
-    new File("launcher/target/scala-2.11").mkdirs()
-    runner.run(nodeSettings, cmdFactory(args), javaopts = javaOpts, _=> new util.HashMap[String, String](environment))
-  }
+  final def javaOpts = List(
+    maxHeap.map("-Xmx" + _).toList,
+    javaProperties.map(e => "-D" + e._1 + "=" + e._2).toList
+  ).flatten.mkString(" ")
 
   def maxHeap: Option[String] = Option("16g")
 
@@ -61,8 +65,5 @@ trait BaseRunner[T<:AnyRef] extends SerializableSupplier[T] {
     "spark.master" -> "local[4]"
   )
 
-  final def javaOpts = List(
-    maxHeap.map("-Xmx" + _).toList,
-    javaProperties.map(e => "-D" + e._1 + "=" + e._2).toList
-  ).flatten.mkString(" ")
+  @transient def runner: EC2RunnerLike
 }

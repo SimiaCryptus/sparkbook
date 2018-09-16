@@ -22,16 +22,13 @@ package org.apache.spark.deploy
 import java.io.File
 import java.net.InetAddress
 import java.nio.charset.Charset
-import java.util
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
-import com.simiacryptus.sparkbook.{DefaultEC2Runner, EC2Runner, EC2RunnerLike, Logging}
-import com.simiacryptus.util.io.KryoUtil
+import com.simiacryptus.sparkbook.util.Logging
+import com.simiacryptus.sparkbook.{DefaultEC2Runner, EC2Runner, EC2RunnerLike}
 import org.apache.commons.io.FileUtils
 
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 object SparkMasterRunner {

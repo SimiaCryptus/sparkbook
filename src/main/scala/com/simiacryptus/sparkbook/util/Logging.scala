@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package com.simiacryptus.sparkbook
+package com.simiacryptus.sparkbook.util
 
 import org.slf4j.LoggerFactory
 

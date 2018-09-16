@@ -21,25 +21,25 @@ package com.simiacryptus.sparkbook.repl
 
 import java.util.concurrent.TimeUnit
 
-import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.notebook.StringQuery.SimpleStringQuery
+import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
+import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook._
-import com.simiacryptus.util.io.StringQuery.SimpleStringQuery
-import com.simiacryptus.util.io._
 import javax.script.ScriptEngineManager
+
 import scala.reflect.runtime.currentMirror
-import scala.tools.reflect.ToolBox
 import scala.tools.nsc.interpreter.IMain
+import scala.tools.reflect.ToolBox
 
 object SimpleScalaRepl {
 
   @transient private lazy val engine = new ScriptEngineManager().getEngineByName("scala")
+  @transient private lazy val toolbox = currentMirror.mkToolBox()
 
   def eval_repl(code: String) = {
     engine.asInstanceOf[IMain].settings.embeddedDefaults[SimpleScalaRepl]
     engine.eval(code)
   }
-
-  @transient private lazy val toolbox = currentMirror.mkToolBox()
 
   def eval_toolkit(code: String) = {
     toolbox.eval(toolbox.parse(code)).asInstanceOf[Object]
@@ -49,8 +49,8 @@ object SimpleScalaRepl {
 import com.simiacryptus.sparkbook.repl.SimpleScalaRepl._
 
 class SimpleScalaRepl extends InteractiveSetup[Object] {
-  val defaultCode = """throw new RuntimeException("End Application")"""
   override val inputTimeoutSeconds = 300
+  val defaultCode = """throw new RuntimeException("End Application")"""
 
   def accept2(log: NotebookOutput): Object = {
     while (true) {

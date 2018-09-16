@@ -6,10 +6,6 @@ import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.SparkSession
 
 trait SparkSessionProvider {
-  def s3bucket: String = null
-
-  def hiveRoot: Option[String] = Option(s3bucket).map(bucket => s"s3a://$bucket/data/")
-
   @transient lazy val spark: SparkSession = {
     val builder = SparkSession.builder()
       .config("fs.s3a.aws.credentials.provider", classOf[DefaultAWSCredentialsProviderChain].getCanonicalName)
@@ -26,6 +22,10 @@ trait SparkSessionProvider {
     }
     builder.getOrCreate()
   }
+
+  def hiveRoot: Option[String] = Option(s3bucket).map(bucket => s"s3a://$bucket/data/")
+
+  def s3bucket: String = null
 
   def sc = spark.sparkContext
 

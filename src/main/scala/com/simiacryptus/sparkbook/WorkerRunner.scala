@@ -3,30 +3,76 @@ package com.simiacryptus.sparkbook
 import java.io.File
 import java.net.URI
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 
 import com.simiacryptus.aws.S3Util
 import com.simiacryptus.util.io.NotebookOutput
-import com.simiacryptus.util.lang.SerializableConsumer
+import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction}
 import org.apache.spark.sql.SparkSession
 import Java8Util._
+import org.apache.spark.rdd.RDD
 
+import scala.reflect.ClassTag
 import scala.util.Random
 
 object WorkerRunner extends Logging {
-  def distribute(log: NotebookOutput, fn: (NotebookOutput, Long) => Unit) = {
-    val parentArchive = log.getArchiveHome
+
+  def apply[T](parentArchive: URI, fn: (NotebookOutput) => T):T = {
     val spark = SparkSession.builder().getOrCreate()
+    val childName = UUID.randomUUID().toString
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
-    val ids = spark.sparkContext.range(0, numberOfWorkers).repartition(numberOfWorkers).map(i => {
+    val r = new AtomicReference[T]()
+    WorkerRunner[Object](parentArchive, (x:NotebookOutput)=>{
+      r.set(fn(x))
+      null
+    }, childName).get()
+    r.get()
+  }
+
+  def distribute(fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+    val rdd: RDD[Long] = getClusterRDD(spark)
+    map(rdd, fn)
+  }
+
+  def mapPartitions[T,U](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, cu : ClassTag[U], spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+    val parentArchive = log.getArchiveHome
+    val results = rdd.mapPartitions(i => {
       val childName = UUID.randomUUID().toString
       try {
-        WorkerRunner(parentArchive, (x: NotebookOutput) => fn(x, i), childName).run()
+        WorkerRunner[Iterator[U]](parentArchive, (x: NotebookOutput) => {
+          fn(x, i)
+        }, childName).get().map(x=>x->childName)
+      } catch {
+        case e: Throwable =>
+          logger.warn("Error in worker", e)
+          throw e
+      }
+    })
+    for (id <- results.map(_._2).distinct().collect()) {
+      val root = log.getRoot
+      log.p("Subreport: %s %s %s %s", id,
+        log.link(new File(root, id + ".md"), "markdown"),
+        log.link(new File(root, id + ".html"), "html"),
+        log.link(new File(root, id + ".pdf"), "pdf"))
+    }
+    results.map(_._1)
+  }
+
+  def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+    val parentArchive = log.getArchiveHome
+    val results: List[String] = rdd.map(i => {
+      val childName = UUID.randomUUID().toString
+      try {
+        WorkerRunner(parentArchive, (x: NotebookOutput) => {
+          fn(x, i)
+          null
+        }, childName).get()
       } catch {
         case e: Throwable => logger.warn("Error in worker", e)
       }
       childName
     }).collect().toList
-    for (id <- ids) {
+    for (id <- results) {
       val root = log.getRoot
       log.p("Subreport: %s %s %s %s", id,
         log.link(new File(root, id + ".md"), "markdown"),
@@ -35,9 +81,14 @@ object WorkerRunner extends Logging {
     }
   }
 
+  private def getClusterRDD(spark: SparkSession) = {
+    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
+    val rdd = spark.sparkContext.range(0, numberOfWorkers).repartition(numberOfWorkers)
+    rdd
+  }
 }
 
-case class WorkerRunner(parent: URI, fn: SerializableConsumer[NotebookOutput], childName: String) extends AWSNotebookRunner {
+case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput,T], childName: String) extends AWSNotebookRunner[T] {
 
   override def shutdownOnQuit: Boolean = false
 
@@ -49,12 +100,13 @@ case class WorkerRunner(parent: URI, fn: SerializableConsumer[NotebookOutput], c
 
   override def autobrowse = false
 
-  override def accept(log: NotebookOutput): Unit = {
+  override def apply(log: NotebookOutput): T = {
     logger.info(String.format("Starting report %s at %s", childName, parent))
     log.setAutobrowse(false)
     log.setArchiveHome(parent)
     log.setName(childName)
-    fn.accept(log)
+    val t = fn.apply(log)
     S3Util.upload(log)
+    t
   }
 }

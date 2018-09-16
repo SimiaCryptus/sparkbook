@@ -26,7 +26,7 @@ import java.util
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
-import com.simiacryptus.sparkbook.{EC2Runner, EC2RunnerLike, Logging}
+import com.simiacryptus.sparkbook.{DefaultEC2Runner, EC2Runner, EC2RunnerLike, Logging}
 import com.simiacryptus.util.io.KryoUtil
 import org.apache.commons.io.FileUtils
 
@@ -58,10 +58,10 @@ case class SparkMasterRunner
   properties: Map[String, String] = Map.empty,
   hostname: String = InetAddress.getLocalHost.getHostName,
   override val maxHeap: Option[String] = Option("4g")
-) extends EC2Runner with Logging {
-  override def runner: EC2RunnerLike = EC2Runner
+) extends EC2Runner[Object] with Logging {
+  override def runner: EC2RunnerLike = new DefaultEC2Runner
 
-  override def run(): Unit = {
+  override def get(): Object = {
     try {
       //EC2SparkSlaveRunner.stage("simiacryptus", "spark-2.3.1.zip")
       logger.info("Hostname: " + hostname)
@@ -85,6 +85,7 @@ case class SparkMasterRunner
       logger.info("Exiting spark master")
       System.exit(0)
     }
+    null
   }
 
   def controlPort: Int = 7077

@@ -19,22 +19,27 @@
 
 package com.simiacryptus.sparkbook
 
-import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril}
-import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
-import com.simiacryptus.util.lang.{CodeUtil, SerializableRunnable}
+import java.io.File
+import java.util
+import java.util.concurrent.Future
 
-trait BaseRunner extends SerializableRunnable {
+import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
+import com.simiacryptus.util.lang.{CodeUtil, SerializableRunnable, SerializableSupplier}
+import scala.collection.JavaConversions._
+
+trait BaseRunner[T<:AnyRef] extends SerializableSupplier[T] {
   def nodeSettings: EC2NodeSettings
 
-  def exe[T](args: String*): T = {
+  def exe(args: String*): T = {
     require(this.isInstanceOf[T])
     main(args.toArray)
     this.asInstanceOf
   }
 
   def main(args: Array[String]): Unit = {
-    val (node, _) = start(args)
+    val (node, _, _) = start(args)
     browse(node, 1080)
     join(node)
   }
@@ -43,13 +48,16 @@ trait BaseRunner extends SerializableRunnable {
 
   def cmdFactory(args: Array[String])(node: EC2Util.EC2Node) = this
 
-  def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, Tendril.TendrilControl) = {
-    runner.start(nodeSettings, cmdFactory(args), javaopts = javaOpts)
+  def environment: Map[String, String] = Map("SPARK_HOME"->".")
+
+  def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
+    new File("launcher/target/scala-2.11").mkdirs()
+    runner.run(nodeSettings, cmdFactory(args), javaopts = javaOpts, _=> new util.HashMap[String, String](environment))
   }
 
-  def maxHeap: Option[String] = Option("4g")
+  def maxHeap: Option[String] = Option("16g")
 
-  def javaProperties: Map[String, String] = Map(
+  final def javaProperties: Map[String, String] = Map(
     "spark.master" -> "local[4]"
   )
 

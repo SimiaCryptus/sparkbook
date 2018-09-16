@@ -48,11 +48,11 @@ object SimpleScalaRepl {
 
 import com.simiacryptus.sparkbook.repl.SimpleScalaRepl._
 
-class SimpleScalaRepl extends InteractiveSetup {
+class SimpleScalaRepl extends InteractiveSetup[Object] {
   val defaultCode = """throw new RuntimeException("End Application")"""
   override val inputTimeoutSeconds = 300
 
-  def accept2(log: NotebookOutput): Unit = {
+  def accept2(log: NotebookOutput): Object = {
     while (true) {
       def code = {
         new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).print(defaultCode).get(inputTimeoutSeconds, TimeUnit.SECONDS)
@@ -62,6 +62,7 @@ class SimpleScalaRepl extends InteractiveSetup {
         eval_toolkit(code)
       })
     }
+    null
   }
 
 }

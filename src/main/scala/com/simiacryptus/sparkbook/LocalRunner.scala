@@ -18,16 +18,16 @@
  */
 package com.simiacryptus.sparkbook
 
-import com.simiacryptus.util.lang.SerializableRunnable
+import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
 import com.simiacryptus.util.test.SysOutInterceptor
 
-trait LocalRunner extends SerializableRunnable {
+trait LocalRunner[T] extends SerializableSupplier[T] {
   def main(args: Array[String]): Unit = {
     System.setProperty("spark.master", "local[16]")
     System.setProperty("spark.app.name", "local")
     SysOutInterceptor.INSTANCE.init
     try {
-      run()
+      get()
     } finally {
       System.exit(0)
     }

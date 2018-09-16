@@ -20,16 +20,17 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
+import java.util
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.aws.{AwsTendrilEnvSettings, AwsTendrilNodeSettings, EC2Util, SESUtil}
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.ScalaJson
-import com.simiacryptus.util.lang.SerializableRunnable
+import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
 import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
 
-trait SparkRunner extends SerializableRunnable with Logging {
+trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
   @transient private lazy val envTuple = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
@@ -72,13 +73,14 @@ trait SparkRunner extends SerializableRunnable with Logging {
       override def runner: EC2RunnerLike = SparkRunner.this.runner
 
     }
-    val (masterNode, masterControl) = runner.start(
+    val (masterNode, masterControl, future) = runner.run(
       masterSettings,
       (node: EC2Util.EC2Node) => {
         logger.info("Setting hostname to " + node.getStatus.getPublicDnsName)
         masterRunner.copy(hostname = node.getStatus.getPublicDnsName)
       },
-      javaopts = masterRunner.javaOpts
+      javaopts = masterRunner.javaOpts,
+      workerEnvironment = _=>new util.HashMap[String,String]()
     )
     masterUrl = "spark://" + masterNode.getStatus.getPublicDnsName + ":7077"
     //EC2Runner.browse(masterNode, 8080)
@@ -100,18 +102,21 @@ trait SparkRunner extends SerializableRunnable with Logging {
       ) {
         override def runner = SparkRunner.this.runner
       }
-      runner.start(
+      runner.run[Object](
         workerSettings,
-        (node: EC2Util.EC2Node) => slaveRunner.copy(hostname = node.getStatus.getPublicDnsName),
-        javaopts = slaveRunner.javaOpts
+        (node: EC2Util.EC2Node) => {
+          slaveRunner.copy(hostname = node.getStatus.getPublicDnsName)
+        },
+        javaopts = slaveRunner.javaOpts,
+        workerEnvironment = (node:EC2Util.EC2Node)=>new util.HashMap[String,String]()
       )
     }).toList
     try {
-      val thisInstance = this
+      val thisInstance: SparkRunner[T] = this
       require(null != masterControl)
       masterControl.start(() => {
         require(null != thisInstance)
-        thisInstance.run()
+        thisInstance.get()
       })
       EC2Runner.browse(masterNode, 1080)
       //EC2Runner.browse(masterNode, 4040)

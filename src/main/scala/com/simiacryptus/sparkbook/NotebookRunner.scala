@@ -24,27 +24,30 @@ import java.io.File
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable}
+import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction, SerializableRunnable, SerializableSupplier}
 
-trait NotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {
+trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput,T] with Logging {
   def http_port = 1080
 
   def autobrowse = true
 
-  def run(): Unit = {
+  def get(): T = {
     try {
       val dateStr = Util.dateStr("yyyyMMddHHmmss")
       val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), http_port, autobrowse)
       try {
-        accept(log)
+        val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")
+        t
       } catch {
         case e: Throwable =>
           logger.warn("Error!", e)
+          throw e
       } finally if (log != null) log.close()
     } catch {
       case e: Throwable =>
         logger.warn("Error!", e)
+        throw e
     }
   }
 

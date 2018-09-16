@@ -1,10 +1,11 @@
 package com.simiacryptus.sparkbook
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
 
-trait EmbeddedSparkRunner extends SparkRunner with NotebookRunner {
+trait EmbeddedSparkRunner[T<:AnyRef] extends SparkRunner[T] with NotebookRunner[T] {
 
-  final override def runner: EC2RunnerLike = EmbeddedRunner
+  final override def runner: EC2RunnerLike = new LocalBaseRunner
 
   final override def numberOfWorkerNodes: Int = 1
 

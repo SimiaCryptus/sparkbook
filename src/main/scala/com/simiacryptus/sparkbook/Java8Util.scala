@@ -21,7 +21,7 @@ package com.simiacryptus.sparkbook
 
 import java.util.function.{BiFunction, BinaryOperator, DoubleSupplier, DoubleUnaryOperator, Function, IntToDoubleFunction, IntUnaryOperator, Predicate, Supplier, ToDoubleBiFunction, ToDoubleFunction}
 
-import com.simiacryptus.util.lang.{SerializableCallable, SerializableConsumer, SerializableRunnable, UncheckedSupplier}
+import com.simiacryptus.util.lang._
 
 object Java8Util {
 
@@ -36,6 +36,18 @@ object Java8Util {
     }
   }
 
+  implicit def cvt[T <: AnyRef, U <: AnyRef](fn: T ⇒ U): SerializableFunction[T,U] = {
+    new SerializableFunction[T,U] {
+      override def apply(x:T): U = fn.apply(x)
+    }
+  }
+
+  implicit def cvtSerializableSupplier[T <: AnyRef](fn: () ⇒ T): SerializableSupplier[T] = {
+    new SerializableSupplier[T] {
+      override def get(): T = fn.apply()
+    }
+  }
+
   implicit def cvtUnchecked[T <: AnyRef](fn: () ⇒ T): UncheckedSupplier[T] = {
     new UncheckedSupplier[T] {
       override def get(): T = fn.apply()
@@ -45,12 +57,6 @@ object Java8Util {
   implicit def cvt[T <: AnyRef](fn: T ⇒ Boolean): Predicate[T] = {
     new Predicate[T] {
       override def test(t: T): Boolean = fn.apply(t)
-    }
-  }
-
-  implicit def cvt[T <: AnyRef](fn: () ⇒ T): Supplier[T] = {
-    new Supplier[T] {
-      override def get(): T = fn.apply()
     }
   }
 
@@ -99,12 +105,6 @@ object Java8Util {
   implicit def cvt(fn: Double ⇒ Double): DoubleUnaryOperator = {
     new DoubleUnaryOperator {
       override def applyAsDouble(v: Double): Double = fn(v)
-    }
-  }
-
-  implicit def cvt[T,U](fn: T ⇒ U): Function[T, U] = {
-    new Function[T, U] {
-      override def apply(v1: T): U = fn(v1)
     }
   }
 

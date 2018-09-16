@@ -29,7 +29,7 @@ import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.TableOutput
 import com.simiacryptus.util.io.StringQuery.SimpleStringQuery
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.SerializableConsumer
+import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction}
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
@@ -70,7 +70,7 @@ object SparkRepl extends SparkSessionProvider {
 
 }
 
-class SparkRepl extends SerializableConsumer[NotebookOutput]() with SparkSessionProvider {
+class SparkRepl extends SerializableFunction[NotebookOutput,Object] with SparkSessionProvider {
 
   @transient private lazy val toolbox = currentMirror.mkToolBox()
 
@@ -114,7 +114,7 @@ class SparkRepl extends SerializableConsumer[NotebookOutput]() with SparkSession
       |""".stripMargin
   val inputTimeout = 60
 
-  override def accept(log: NotebookOutput): Unit = {
+  override def apply(log: NotebookOutput): Object = {
     SparkRepl.log = log
     init()
 
@@ -138,6 +138,7 @@ class SparkRepl extends SerializableConsumer[NotebookOutput]() with SparkSession
         log.write()
       }
     }
+    null
   }
 
   def shouldContinue() = {

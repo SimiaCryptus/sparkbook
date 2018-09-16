@@ -20,36 +20,38 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
+import java.net.InetAddress
 import java.util
 
-import com.simiacryptus.aws.Tendril
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
+import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
+import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.util.lang.SerializableRunnable
-import Java8Util._
-import scala.collection.JavaConversions._
+import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.sparkbook.Java8Util._
 
+import scala.collection.JavaConversions._
 import scala.util.Random
 
-trait ChildJvmRunner extends BaseRunner with Logging {
+trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
   def workingDir = new File(".")
 
-  def environment: Map[String, String] = Map()
-
-  override lazy val runner: EC2RunnerLike = new LocalBaseRunner with Logging {
+  override lazy val runner: EC2RunnerLike = new EC2RunnerLike with Logging {
     lazy val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts, new util.HashMap[String, String](environment), workingDir)
 
-    override def run(task: SerializableRunnable) = {
-      control.start(() => task.run())
-    }
+    override def start(nodeSettings: EC2NodeSettings, javaopts: String, workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
+      (new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
 
-    override def status: String = {
-      try {
-        control.eval(() => "running")
-      } catch {
-        case e: Throwable =>
-          logger.warn("Error getting child status", e)
-          e.getMessage
-      }
+        override def getStatus: Instance = {
+          new Instance()
+            .withPublicDnsName(InetAddress.getLocalHost.getHostName)
+            .withState(new InstanceState().withName(""))
+        }
+
+        override def terminate(): TerminateInstancesResult = null
+
+        override def close(): Unit = {}
+      }, control)
     }
   }
 

@@ -22,8 +22,6 @@ package com.simiacryptus.sparkbook
 import java.awt.{Desktop, GraphicsEnvironment}
 import java.io.{File, IOException}
 import java.net.URI
-import java.util
-import java.util.Random
 import java.util.concurrent.{Executors, TimeUnit}
 
 import com.amazonaws.regions.Regions
@@ -32,21 +30,15 @@ import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, Amaz
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws._
-import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
+import com.simiacryptus.aws.exe.UserSettings
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.Util
-import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
-import com.simiacryptus.util.lang.{CodeUtil, SerializableConsumer, SerializableRunnable}
+import com.simiacryptus.util.io.ScalaJson
 import com.simiacryptus.util.test.SysOutInterceptor
-import org.slf4j.LoggerFactory
 
 import scala.util.{Success, Try}
 
-
-/**
-  * The type Ec 2 runner.
-  */
-object EC2Runner extends EC2RunnerLike with Logging {
+object EC2Runner extends Logging {
 
   /**
     * Gets ec 2.
@@ -73,24 +65,11 @@ object EC2Runner extends EC2RunnerLike with Logging {
   lazy val s3: AmazonS3 = AmazonS3ClientBuilder.standard.withRegion(Regions.US_WEST_2).build
 
   lazy val (envSettings, s3bucket, emailAddress) = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+    val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(ec2, iam, s3))
     val load = UserSettings.load
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, load.emailAddress)
     (envSettings, envSettings.bucket, load.emailAddress)
   }
-
-  /**
-    * Log files.
-    *
-    * @param f the f
-    */
-  def logFiles(f: File): Unit = {
-    if (f.isDirectory) for (child <- f.listFiles) {
-      logFiles(child)
-    }
-    else logger.info(s"File ${f.getAbsolutePath} length ${f.length}")
-  }
-
 
   @throws[IOException]
   def browse(uri: URI): Unit = {
@@ -122,18 +101,6 @@ object EC2Runner extends EC2RunnerLike with Logging {
     }
   }
 
-  /**
-    * Gets test name.
-    *
-    * @param fn the fn
-    * @return the test name
-    */
-  def getTestName(fn: SerializableConsumer[NotebookOutput]): String = {
-    var name = fn.getClass.getCanonicalName
-    if (null == name || name.isEmpty) name = fn.getClass.getSimpleName
-    if (null == name || name.isEmpty) name = "index"
-    name
-  }
 
   def browse(node: EC2Util.EC2Node, port: Int = 1080): Unit = {
     try
@@ -144,51 +111,34 @@ object EC2Runner extends EC2RunnerLike with Logging {
     }
   }
 
-  override def start
-  (
-    nodeSettings: EC2NodeSettings,
-    command: EC2Util.EC2Node => SerializableRunnable,
-    javaopts: String = "",
-    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = _ => new util.HashMap[String, String]()
-  ): (EC2Util.EC2Node, Tendril.TendrilControl) = {
-    val tuple@(node, control) = init(nodeSettings, javaopts, workerEnvironment)
-    try {
-      val runnable = command(node)
-      logger.info("Updated runnable: " + runnable)
-      control.start(runnable)
-      tuple
+  /**
+    * Log files.
+    *
+    * @param f the f
+    */
+  def logFiles(f: File): Unit = {
+    if (f.isDirectory) for (child <- f.listFiles) {
+      logFiles(child)
     }
-    catch {
-      case e: Throwable =>
-        tuple._1.close()
-        throw new RuntimeException(e)
-    }
+    else logger.info(s"File ${f.getAbsolutePath} length ${f.length}")
   }
 
-
-  def init(nodeSettings: EC2NodeSettings, javaopts: String, workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]) = {
-    val tendrilNodeSettings: AwsTendrilNodeSettings = new AwsTendrilNodeSettings(envSettings)
-    tendrilNodeSettings.instanceType = nodeSettings.machineType
-    tendrilNodeSettings.imageId = nodeSettings.imageId
-    tendrilNodeSettings.username = nodeSettings.username
-    tendrilNodeSettings.jvmConfig.javaOpts += javaopts
-    val localControlPort = new Random().nextInt(1024) + 1024
-    val node: EC2Util.EC2Node = tendrilNodeSettings.startNode(EC2Runner.ec2, localControlPort)
-    val control = Tendril.startRemoteJvm(node, tendrilNodeSettings.jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, tendrilNodeSettings.bucket, workerEnvironment(node))
-    List(
-      "ec2-settings.json",
-      "user-settings.json"
-    ).foreach(configFile => node.scp(new File(configFile), configFile))
-    node -> control
+  /**
+    * Gets test name.
+    *
+    * @param fn the fn
+    * @return the test name
+    */
+  def getTestName(fn: Object): String = {
+    var name = fn.getClass.getCanonicalName
+    if (null == name || name.isEmpty) name = fn.getClass.getSimpleName
+    if (null == name || name.isEmpty) name = "index"
+    name
   }
 
-  //  def launch(command: EC2Util.EC2Node => SerializableRunnable, node: EC2Util.EC2Node, control: Tendril.TendrilControl) = {
-  //    require(null != control)
-  //    control.start(command(node))
-  //  }
 }
 
-trait EC2Runner extends BaseRunner {
+trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
   Tendril.getKryo.copy(this)
   @transient private lazy val envTuple = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
@@ -202,7 +152,7 @@ trait EC2Runner extends BaseRunner {
 
   @transient def emailAddress: String = envTuple._3
 
-  @transient override def runner: EC2RunnerLike = EC2Runner
+  @transient override def runner: EC2RunnerLike = new DefaultEC2Runner
 
 }
 

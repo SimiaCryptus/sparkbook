@@ -32,7 +32,7 @@ import com.simiacryptus.aws._
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.util.lang.{SerializableConsumer, SerializableRunnable}
+import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction, SerializableRunnable, SerializableSupplier}
 import org.apache.commons.io.{FileUtils, IOUtils}
 
 import scala.util.Try
@@ -41,13 +41,13 @@ object AWSNotebookRunner {
   val runtimeId = UUID.randomUUID().toString
 }
 
-trait AWSNotebookRunner extends InnerAWSNotebookRunner {
+trait AWSNotebookRunner[T] extends InnerAWSNotebookRunner[T] {
   def s3bucket: String
 
   override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/" + new SimpleDateFormat("yyyyMMddmmss").format(new Date()) + "/")
 }
 
-trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsumer[NotebookOutput] with Logging {
+trait InnerAWSNotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput,T] with Logging {
 
   def shutdownOnQuit = true
   def emailAddress: String
@@ -56,15 +56,15 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
   def http_port = 1080
   def s3home: URI
 
-  def run(): Unit = {
+  def get(): T = {
     try {
       val startTime = System.currentTimeMillis
       val port = http_port
       val browse = autobrowse
-      new NotebookRunner() {
+      new NotebookRunner[T]() {
         override def autobrowse = browse
         override def http_port = port
-        override def accept(log: NotebookOutput): Unit = {
+        override def apply(log: NotebookOutput): T = {
           log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
           log.onComplete(() => {
             val uploads = S3Util.upload(log);
@@ -76,12 +76,13 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
             case e@(_: IOException | _: URISyntaxException) =>
               throw new RuntimeException(e)
           }
-          InnerAWSNotebookRunner.this.accept(log)
+          val t = InnerAWSNotebookRunner.this.apply(log)
           log.setFrontMatterProperty("status", "OK")
+          t
         }
 
         override def name = EC2Runner.getTestName(InnerAWSNotebookRunner.this)
-      }.run()
+      }.get()
     }
     finally {
       if (shutdownOnQuit) {
@@ -145,7 +146,7 @@ trait InnerAWSNotebookRunner extends SerializableRunnable with SerializableConsu
 
   @throws[IOException]
   @throws[URISyntaxException]
-  private def sendStartEmail(testName: String, fn: SerializableConsumer[NotebookOutput]): Unit = {
+  private def sendStartEmail(testName: String, fn: SerializableFunction[NotebookOutput,_]): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
       val publicHostname = Try {
         IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/public-hostname"), "UTF-8")

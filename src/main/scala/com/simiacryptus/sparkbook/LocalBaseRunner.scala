@@ -7,17 +7,20 @@ import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
 import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril}
-import com.simiacryptus.util.lang.{SerializableCallable, SerializableRunnable}
-import Java8Util._
+import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.sparkbook.Java8Util._
+import com.simiacryptus.util.lang.{SerializableCallable, SerializableSupplier}
 
-trait LocalBaseRunner extends EC2RunnerLike {
-
-  def run(task: SerializableRunnable): Unit
+class LocalBaseRunner extends EC2RunnerLike {
 
   def status = "running"
 
-  override def start(nodeSettings: EC2NodeSettings, command: EC2Util.EC2Node => SerializableRunnable, javaopts: String, workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]): (EC2Util.EC2Node, Tendril.TendrilControl) = {
+  override def start
+  (
+    nodeSettings: EC2NodeSettings,
+    javaopts: String,
+    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]
+  ): (EC2Util.EC2Node, TendrilControl) = {
     val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
       /**
         * Gets status.
@@ -39,9 +42,7 @@ trait LocalBaseRunner extends EC2RunnerLike {
 
       override def close(): Unit = {}
     }
-    val task = command.apply(node)
-    new Thread((() => run(task)): Runnable).start()
-    node -> new Tendril.TendrilControl(new Tendril.TendrilLink {
+    (node, new TendrilControl(new Tendril.TendrilLink {
       override def isAlive: Boolean = true
 
       override def exit(): Unit = {}
@@ -49,6 +50,6 @@ trait LocalBaseRunner extends EC2RunnerLike {
       override def time(): Long = System.currentTimeMillis()
 
       override def run[T](task: SerializableCallable[T]): T = task.call()
-    })
+    }))
   }
 }

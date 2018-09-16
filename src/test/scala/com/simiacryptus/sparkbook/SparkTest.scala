@@ -26,12 +26,12 @@ import com.simiacryptus.aws.S3Util
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.Java8Util._
 import com.simiacryptus.util.io.{NotebookOutput, ScalaJson}
-import com.simiacryptus.util.lang.SerializableConsumer
+import com.simiacryptus.util.lang.{SerializableConsumer, SerializableFunction}
 import org.apache.spark.sql.SparkSession
 
-object LocalSparkTest extends SparkTest with LocalRunner with NotebookRunner
+object LocalSparkTest extends SparkTest with LocalRunner[Object] with NotebookRunner[Object]
 
-object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with NotebookRunner {
+object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner[Object] with NotebookRunner[Object] {
 
   override def numberOfWorkersPerNode: Int = 2
 
@@ -39,7 +39,7 @@ object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner with Noteboo
 
 }
 
-object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner {
+object EC2SparkTest extends SparkTest with EC2SparkRunner[Object] with AWSNotebookRunner[Object] {
 
   override def numberOfWorkerNodes: Int = 1
 
@@ -56,17 +56,21 @@ object EC2SparkTest extends SparkTest with EC2SparkRunner with AWSNotebookRunner
 }
 
 
-abstract class SparkTest extends SerializableConsumer[NotebookOutput]() with Logging {
+abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] with Logging {
 
-  override def accept(log: NotebookOutput): Unit = {
+  override def apply(log: NotebookOutput): Object = {
     for (i <- 0 until 3) {
-      WorkerRunner.distribute(log, (childLog: NotebookOutput, i: Long) => {
+      WorkerRunner.distribute((childLog: NotebookOutput, i: Long) => {
         childLog.eval(() => {
           println(s"Hello World (from partition $i)")
           ScalaJson.toJson(LocalAppSettings.read())
         })
-      })
+        LocalAppSettings.read().get("worker.index").foreach(idx=>{
+          System.setProperty("CUDA_DEVICES",idx)
+        })
+      })(log)
       Thread.sleep(30000)
     }
+    null
   }
 }

@@ -20,18 +20,40 @@
 package com.simiacryptus.sparkbook
 
 import java.util
+import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril}
-import com.simiacryptus.util.lang.SerializableRunnable
+import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.util.lang.{SerializableRunnable, SerializableSupplier}
 
-trait EC2RunnerLike {
+trait EC2RunnerLike extends Logging {
   def start
   (
     nodeSettings: EC2NodeSettings,
-    command: EC2Util.EC2Node => SerializableRunnable,
     javaopts: String = "",
-    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = _ => new util.HashMap[String, String]()
-  ): (EC2Util.EC2Node, Tendril.TendrilControl)
+    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]
+  ): (EC2Util.EC2Node, TendrilControl)
+
+
+  final def run[T<:AnyRef]
+  (
+    nodeSettings: EC2NodeSettings,
+    command: EC2Util.EC2Node => SerializableSupplier[T],
+    javaopts: String = "",
+    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]
+  ): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
+    val (node: EC2Util.EC2Node, control: TendrilControl) = start(nodeSettings, javaopts, workerEnvironment)
+    try {
+      val runnable = command(node)
+      logger.info("Updated runnable: " + runnable)
+      (node, control, control.start(runnable))
+    }
+    catch {
+      case e: Throwable =>
+        node.close()
+        throw new RuntimeException(e)
+    }
+  }
+
 }
 

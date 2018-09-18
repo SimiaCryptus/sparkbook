@@ -47,7 +47,7 @@ trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
 
   def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
     new File("launcher/target/scala-2.11").mkdirs()
-    runner.run(nodeSettings, cmdFactory(args), javaopts = javaOpts, _ => new util.HashMap[String, String](environment))
+    runner.run(nodeSettings, cmdFactory(args), javaopts = javaOpts, _ => new java.util.HashMap[String, String](environment))
   }
 
   def cmdFactory(args: Array[String])(node: EC2Util.EC2Node) = this

@@ -87,7 +87,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
 
   def http_port = 1080
 
-  private def sendCompleteEmail(testName: String, workingDir: File, uploads: util.Map[File, URL], startTime: Long): Unit = {
+  private def sendCompleteEmail(testName: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
       val reportFile = new File(workingDir, testName + ".html")
       logger.info(String.format("Emailing report at %s to %s", reportFile, emailAddress))

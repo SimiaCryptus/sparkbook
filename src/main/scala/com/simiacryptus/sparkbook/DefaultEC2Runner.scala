@@ -18,7 +18,7 @@ class DefaultEC2Runner extends EC2RunnerLike with Logging {
   (
     nodeSettings: EC2NodeSettings,
     javaopts: String = "",
-    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]
+    workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl) = {
     val tendrilNodeSettings: AwsTendrilNodeSettings = new AwsTendrilNodeSettings(EC2Runner.envSettings)
     tendrilNodeSettings.instanceType = nodeSettings.machineType

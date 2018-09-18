@@ -36,9 +36,9 @@ import scala.util.Random
 
 trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
   override lazy val runner: EC2RunnerLike = new EC2RunnerLike with Logging {
-    lazy val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts, new util.HashMap[String, String](environment), workingDir)
+    lazy val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts, new java.util.HashMap[String, String](environment), workingDir)
 
-    override def start(nodeSettings: EC2NodeSettings, javaopts: String, workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
+    override def start(nodeSettings: EC2NodeSettings, javaopts: String, workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
       (new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
 
         override def getStatus: Instance = {

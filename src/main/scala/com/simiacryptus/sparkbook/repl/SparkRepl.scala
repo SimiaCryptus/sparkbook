@@ -47,8 +47,8 @@ object SparkRepl extends SparkSessionProvider {
     val tableOutput = new TableOutput()
     frame.schema.fields.foreach(f => {
       tableOutput.schema.put(nameFn(f.name), f.dataType match {
-        case IntegerType => classOf[Integer]
-        case StringType => classOf[String]
+        case IntegerType => classOf[Object]
+        case StringType => classOf[Object]
         case _ => classOf[Object]
       })
     })

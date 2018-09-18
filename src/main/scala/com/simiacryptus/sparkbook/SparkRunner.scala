@@ -75,7 +75,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
         masterRunner.copy(hostname = node.getStatus.getPublicDnsName)
       },
       javaopts = masterRunner.javaOpts,
-      workerEnvironment = _ => new util.HashMap[String, String]()
+      workerEnvironment = _ => new java.util.HashMap[String, String]()
     )
     masterUrl = "spark://" + masterNode.getStatus.getPublicDnsName + ":7077"
     //EC2Runner.browse(masterNode, 8080)
@@ -103,7 +103,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
           slaveRunner.copy(hostname = node.getStatus.getPublicDnsName)
         },
         javaopts = slaveRunner.javaOpts,
-        workerEnvironment = (node: EC2Util.EC2Node) => new util.HashMap[String, String]()
+        workerEnvironment = (node: EC2Util.EC2Node) => new java.util.HashMap[String, String]()
       )
     }).toList
     try {

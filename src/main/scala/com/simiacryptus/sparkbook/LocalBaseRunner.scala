@@ -17,7 +17,7 @@ class LocalBaseRunner extends EC2RunnerLike {
   (
     nodeSettings: EC2NodeSettings,
     javaopts: String,
-    workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String]
+    workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl) = {
     val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
       /**

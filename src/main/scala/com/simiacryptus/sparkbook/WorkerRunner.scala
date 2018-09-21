@@ -35,6 +35,18 @@ object WorkerRunner extends Logging {
     map(rdd, fn)
   }
 
+  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+    val rdd: RDD[Long] = getClusterRDD(spark)
+    mapEval(rdd, fn)
+  }
+
+  def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession = SparkSession.builder().getOrCreate()): List[T] = {
+    rdd.map(i => {
+      fn(i)
+    }).collect().toList
+  }
+
+
   def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
     val parentArchive = log.getArchiveHome
     val results: List[String] = rdd.map(i => {
@@ -67,8 +79,8 @@ object WorkerRunner extends Logging {
   def mapPartitions[T, U](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, cu: ClassTag[U], spark: SparkSession = SparkSession.builder().getOrCreate()) = {
     val parentArchive = log.getArchiveHome
     val results = rdd.mapPartitions(i => {
-      val childName = UUID.randomUUID().toString
       try {
+        val childName = UUID.randomUUID().toString
         WorkerRunner[Iterator[U]](parentArchive, (x: NotebookOutput) => {
           fn(x, i)
         }, childName).get().map(x => x -> childName)

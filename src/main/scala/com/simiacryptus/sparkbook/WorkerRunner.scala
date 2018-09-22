@@ -31,12 +31,10 @@ object WorkerRunner extends Logging {
   }
 
   def distribute(fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
-    val rdd: RDD[Long] = getClusterRDD(spark)
     map(rdd, fn)
   }
 
   def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession = SparkSession.builder().getOrCreate()) = {
-    val rdd: RDD[Long] = getClusterRDD(spark)
     mapEval(rdd, fn)
   }
 
@@ -49,7 +47,7 @@ object WorkerRunner extends Logging {
 
   def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
     val parentArchive = log.getArchiveHome
-    val results: List[String] = rdd.map(i => {
+    val results: List[String] = repartition(rdd).map(i => {
       val childName = UUID.randomUUID().toString
       try {
         WorkerRunner(parentArchive, (x: NotebookOutput) => {
@@ -70,15 +68,20 @@ object WorkerRunner extends Logging {
     }
   }
 
-  private def getClusterRDD(spark: SparkSession) = {
+  def rdd(implicit spark: SparkSession): RDD[Long] = {
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
-    val rdd = spark.sparkContext.range(0, numberOfWorkers).repartition(numberOfWorkers)
+    val rdd = spark.sparkContext.range(0, numberOfWorkers).coalesce(numberOfWorkers, true)
     rdd
   }
 
-  def mapPartitions[T, U](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, cu: ClassTag[U], spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+  def repartition[T:ClassTag](rdd: RDD[T])(implicit spark: SparkSession = SparkSession.builder().getOrCreate()):RDD[T] = {
+    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
+    rdd.flatMap(x=>(0 to 1000).map(y=>x->y)).repartition(numberOfWorkers).mapPartitions(_.map(_._1).toList.distinct.iterator)
+  }
+
+  def mapPartitions[T:ClassTag, U:ClassTag](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
     val parentArchive = log.getArchiveHome
-    val results = rdd.mapPartitions(i => {
+    val results = repartition(rdd).mapPartitions(i => {
       try {
         val childName = UUID.randomUUID().toString
         WorkerRunner[Iterator[U]](parentArchive, (x: NotebookOutput) => {

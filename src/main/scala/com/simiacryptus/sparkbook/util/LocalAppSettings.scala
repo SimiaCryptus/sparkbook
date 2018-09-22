@@ -13,19 +13,14 @@ object LocalAppSettings extends Logging {
   def read(workingDir: File = new File(".").getAbsoluteFile): Map[String, String] = {
     val parentFile = workingDir.getParentFile
     val file = new File(workingDir, "app.json")
-    (
-      if (parentFile != null && parentFile.exists()) {
-        read(parentFile) ++ Map(
-          //file.getAbsolutePath -> "Not Found"
-        )
-      }
-      else Map.empty[String, String]
-      ) ++ (
+    (if (parentFile != null && parentFile.exists()) {
+      read(parentFile) ++ Map(
+        //file.getAbsolutePath -> "Not Found"
+      )
+    }
+    else Map.empty[String, String]) ++ (
       if (file.exists()) {
-        val txt = new String(FileUtils.readFileToByteArray(file), Charset.forName("UTF-8"))
-        ScalaJson.fromJson(txt, classOf[Map[String, String]]) ++ Map(
-          //"config" -> file.getAbsolutePath
-        )
+        ScalaJson.fromJson(new String(FileUtils.readFileToByteArray(file), Charset.forName("UTF-8")), classOf[Map[String, String]])
       }
       else Map.empty[String, String]
       )

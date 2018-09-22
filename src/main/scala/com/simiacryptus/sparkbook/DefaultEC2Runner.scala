@@ -1,7 +1,6 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
-import java.util
 import java.util.Random
 
 import com.simiacryptus.aws.exe.EC2NodeSettings

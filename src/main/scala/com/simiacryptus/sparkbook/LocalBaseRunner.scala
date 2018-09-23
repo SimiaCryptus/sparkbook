@@ -1,7 +1,6 @@
 package com.simiacryptus.sparkbook
 
 import java.net.InetAddress
-import java.util
 
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
@@ -27,7 +26,7 @@ class LocalBaseRunner extends EC2RunnerLike {
         */
       override def getStatus: Instance = {
         new Instance()
-          .withPublicDnsName(InetAddress.getLocalHost.getHostName)
+          .withPublicDnsName(EC2Util.publicHostname)
           .withState(new InstanceState().withName(status))
       }
 

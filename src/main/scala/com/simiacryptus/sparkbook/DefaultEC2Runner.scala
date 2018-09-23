@@ -16,7 +16,7 @@ class DefaultEC2Runner extends EC2RunnerLike with Logging {
   override def start
   (
     nodeSettings: EC2NodeSettings,
-    javaopts: String = "",
+    javaOpts: String = "",
     workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl) = {
     val tendrilNodeSettings: AwsTendrilNodeSettings = new AwsTendrilNodeSettings(EC2Runner.envSettings)
@@ -24,7 +24,7 @@ class DefaultEC2Runner extends EC2RunnerLike with Logging {
     tendrilNodeSettings.imageId = nodeSettings.imageId
     tendrilNodeSettings.username = nodeSettings.username
     val jvmConfig = tendrilNodeSettings.newJvmConfig()
-    jvmConfig.javaOpts += javaopts
+    jvmConfig.javaOpts += javaOpts
     val localControlPort = new Random().nextInt(1024) + 1024
     val node: EC2Util.EC2Node = tendrilNodeSettings.startNode(EC2Runner.ec2, localControlPort)
     val control = Tendril.startRemoteJvm(node, jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, tendrilNodeSettings.bucket, workerEnvironment(node))

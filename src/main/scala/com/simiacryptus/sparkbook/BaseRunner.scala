@@ -20,7 +20,6 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
-import java.util
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
@@ -34,7 +33,6 @@ trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   def nodeSettings: EC2NodeSettings
 
   def exe(args: String*): T = {
-    require(this.isInstanceOf[T])
     main(args.toArray)
     this.asInstanceOf
   }
@@ -46,22 +44,19 @@ trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   }
 
   def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
-    new File("launcher/target/scala-2.11").mkdirs()
-    runner.run(nodeSettings, cmdFactory(args), javaopts = javaOpts, _ => new java.util.HashMap[String, String](environment))
+    runner.run(nodeSettings, _=>this, javaOpts, _ => new java.util.HashMap[String, String](environment))
   }
-
-  def cmdFactory(args: Array[String])(node: EC2Util.EC2Node) = this
 
   def environment: Map[String, String] = Map("SPARK_HOME" -> ".")
 
-  final def javaOpts = List(
+  final def javaOpts: String = List(
     maxHeap.map("-Xmx" + _).toList,
     javaProperties.map(e => "-D" + e._1 + "=" + e._2).toList
   ).flatten.mkString(" ")
 
   def maxHeap: Option[String] = Option("16g")
 
-  final def javaProperties: Map[String, String] = Map(
+  def javaProperties: Map[String, String] = Map(
     "spark.master" -> "local[4]"
   )
 

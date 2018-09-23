@@ -52,7 +52,8 @@ object SparkMasterRunner {
 case class SparkMasterRunner
 (
   nodeSettings: EC2NodeSettings,
-  properties: Map[String, String] = Map.empty,
+  override val javaProperties: Map[String, String] = Map.empty,
+  val sparkProperties: Map[String, String] = Map.empty,
   hostname: String = InetAddress.getLocalHost.getHostName,
   override val maxHeap: Option[String] = Option("4g")
 ) extends EC2Runner[Object] with Logging {
@@ -67,8 +68,7 @@ case class SparkMasterRunner
       logger.info("Spark master = " + master)
       System.setProperty("spark.master", master)
       System.setProperty("spark.app.name", "default")
-      if (null != properties) properties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
-      FileUtils.write(new File("conf/spark-defaults.conf"), properties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
+      FileUtils.write(new File(s"conf${File.separator}spark-defaults.conf"), sparkProperties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
       org.apache.spark.deploy.master.Master.main(Array(
         "--host", hostname,
         "--port", controlPort.toString,
@@ -79,7 +79,7 @@ case class SparkMasterRunner
     } catch {
       case e: Throwable => logger.error("Error running spark master", e)
     } finally {
-      logger.info("Exiting spark master")
+      logger.warn("Exiting spark master", new RuntimeException("Stack Trace"))
       System.exit(0)
     }
     null

@@ -4,7 +4,7 @@ import com.simiacryptus.sparkbook.{EmbeddedSparkRunner, NotebookRunner}
 
 object EmbeddedSparkRepl extends SparkRepl with EmbeddedSparkRunner[Object] with NotebookRunner[Object] {
 
-  override def s3bucket: String = super.s3bucket
+  @transient override protected val s3bucket: String = envTuple._2
 
   override def numberOfWorkersPerNode: Int = 2
 

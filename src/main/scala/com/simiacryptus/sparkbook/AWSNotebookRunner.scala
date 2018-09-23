@@ -5,7 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
 trait AWSNotebookRunner[T] extends BaseAWSNotebookRunner[T] {
-  def s3bucket: String
+  protected def s3bucket: String
 
   override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/" + new SimpleDateFormat("yyyyMMddmmss").format(new Date()) + "/")
 }

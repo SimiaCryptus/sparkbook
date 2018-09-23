@@ -30,8 +30,8 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{ClasspathUtil, EC2Util}
-import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook._
+import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{LocalAppSettings, Logging}
 import org.apache.commons.io.{FileUtils, IOUtils}
 
@@ -73,34 +73,31 @@ case class SparkSlaveRunner
   master: String,
   nodeSettings: EC2NodeSettings,
   hostname: String = InetAddress.getLocalHost.getHostName,
+  cores: Int = 1,
   memory: String = "4g",
   numberOfWorkersPerNode: Int = 1,
-  sparkConfig: Map[String, String] = Map.empty,
-  val javaConfig: Map[String, String] = Map.empty
+  sparkProperties: Map[String, String] = Map.empty,
+  override val javaProperties: Map[String, String] = Map.empty,
+  override val environment: Map[String, String] = Map.empty
 ) extends EC2Runner[Object] with Logging {
   val workerPort: Int = 7078 + Random.nextInt(128)
   val uiPort: Int = 8080 + Random.nextInt(128)
 
   override def runner: EC2RunnerLike = new DefaultEC2Runner
 
-  override def main(args: Array[String]): Unit = {
-    val workerEnvironment: EC2Util.EC2Node => util.HashMap[String, String] = (node: EC2Util.EC2Node) => new util.HashMap[String, String](Map(
-      "SPARK_HOME" -> ".",
-      "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
-      "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName,
-      "SPARK_WORKER_MEMORY" -> memory,
-      "SPARK_WORKER_INSTANCES" -> numberOfWorkersPerNode.toString
-    ).asJava)
-    val (node: EC2Util.EC2Node, _, _) = runner.run[Object](
+  override def start(args: Array[String]) = {
+    new File("launcher/target/scala-2.11").mkdirs()
+    runner.run[Object](
       nodeSettings = nodeSettings,
-      command = (node: EC2Util.EC2Node) => () => {
-        this.get()
-        null
-      }: Object,
-      javaopts = javaOpts,
-      workerEnvironment = workerEnvironment
+      command = _ => this,
+      workerEnvironment = (node: EC2Util.EC2Node) => new util.HashMap[String, String](Map(
+        "SPARK_HOME" -> ".",
+        "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
+        "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName,
+        "SPARK_WORKER_MEMORY" -> memory,
+        "SPARK_WORKER_INSTANCES" -> numberOfWorkersPerNode.toString
+      ).asJava)
     )
-    EC2Runner.join(node)
   }
 
   override def get(): Object = {
@@ -111,28 +108,35 @@ case class SparkSlaveRunner
         workingDir.mkdirs()
         prepareWorkingDirectory(workingDir, i)
         val conf = new File(workingDir, s"conf${File.separator}spark-defaults.conf")
-        FileUtils.write(conf, (sparkConfig ++ Map(
+        FileUtils.write(conf, (sparkProperties ++ Map(
           "spark.executor.extraClassPath" -> (new File(".").getAbsolutePath + "/lib/*.jar"),
-          "spark.executor.extraJavaOptions" -> javaConfig.map(e => s"-D${e._1}=${e._2}").mkString(" "),
+          "spark.executor.extraJavaOptions" -> javaProperties.map(e => s"-D${e._1}=${e._2}").mkString(" "),
           "spark.executor.memory" -> memory,
           "spark.shuffle.service.enabled" -> "false"
         )).map(e => "%s\t%s".format(e._1, e._2 //.replaceAll(":", "\\\\:")
         )).mkString("\n"), Charset.forName("UTF-8"))
-        SingleSlaveRunner(args = Array(
-          "--webui-port", (uiPort + i).toString,
-          "--port", (workerPort + i).toString,
-          "--memory", memory,
-          master
-        ), workingDir = workingDir, environment = Map(
-          "SPARK_HOME" -> workingDir.getAbsolutePath
-        )).start()
+        SingleSlaveRunner(
+          args = Array(
+            "--webui-port", (uiPort + i).toString,
+            "--port", (workerPort + i).toString,
+            "--cores", cores.toString,
+            "--memory", memory,
+            master
+          ),
+          workingDir = workingDir,
+          environment = environment ++ Map(
+            "SPARK_HOME" -> workingDir.getAbsolutePath,
+            "SPARK_WORKER_MEMORY" -> memory
+          ),
+          javaProperties = javaProperties
+        ).start()
       }
       logger.info(s"Slave init to $master running on ${new File(".").getAbsolutePath}")
       SparkMasterRunner.joinAll()
     } catch {
       case e: Throwable => logger.error("Error running spark slave", e)
     } finally {
-      logger.info("Exiting spark slave")
+      logger.warn("Exiting spark slave", new RuntimeException("Stack Trace"))
       System.exit(0)
     }
     null
@@ -188,7 +192,8 @@ case class SingleSlaveRunner
 (
   val args: Array[String],
   override val workingDir: File = new File("."),
-  override val environment: Map[String, String] = Map()
+  override val environment: Map[String, String] = Map(),
+  override val javaProperties: Map[String, String] = Map()
 ) extends ChildJvmRunner[Object] {
 
   override def maxHeap: Option[String] = Option("1g")
@@ -196,7 +201,6 @@ case class SingleSlaveRunner
   override def get(): Object = {
     javaProperties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
     System.setProperty("spark.executor.extraJavaOptions", javaProperties.map(e => s"-D${e._1}=${e._2}").mkString(" "))
-    System.getProperties.asScala.foreach(e => System.out.println("Spark Work Init Property: " + e._1 + " = " + e._2))
     fn(args)
     null
   }

@@ -2,10 +2,11 @@ package com.simiacryptus.sparkbook.repl
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.esotericsoftware.kryo.Kryo
+import com.simiacryptus.sparkbook.util.Logging
 import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.SparkSession
 
-trait SparkSessionProvider {
+trait SparkSessionProvider extends Logging {
   @transient lazy val spark: SparkSession = {
     val builder = SparkSession.builder()
       .config("fs.s3a.aws.credentials.provider", classOf[DefaultAWSCredentialsProviderChain].getCanonicalName)
@@ -20,12 +21,16 @@ trait SparkSessionProvider {
       builder.config("spark.sql.warehouse.dir", hiveRoot.get)
       builder.enableHiveSupport()
     }
-    builder.getOrCreate()
+    builder.config("spark.executor.memory", workerMemory)
+    val sparkSession = builder.getOrCreate()
+    logger.warn("Initialized sparkSession")
+    sparkSession.conf.getAll.foreach(e=>logger.warn(s"Config ${e._1} = ${e._2}"))
+    sparkSession
   }
 
+  def workerMemory: String = Option(System.getenv("SPARK_WORKER_MEMORY")).getOrElse("60g")
   def hiveRoot: Option[String] = Option(s3bucket).map(bucket => s"s3a://$bucket/data/")
-
-  def s3bucket: String = null
+  protected def s3bucket: String = null
 
   def sc = spark.sparkContext
 

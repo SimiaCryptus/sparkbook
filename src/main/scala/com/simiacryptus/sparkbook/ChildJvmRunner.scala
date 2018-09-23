@@ -21,7 +21,6 @@ package com.simiacryptus.sparkbook
 
 import java.io.File
 import java.net.InetAddress
-import java.util
 
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
@@ -36,21 +35,23 @@ import scala.util.Random
 
 trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
   override lazy val runner: EC2RunnerLike = new EC2RunnerLike with Logging {
-    lazy val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts, new java.util.HashMap[String, String](environment), workingDir)
-
-    override def start(nodeSettings: EC2NodeSettings, javaopts: String, workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
-      (new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
+    override def start(nodeSettings: EC2NodeSettings, subJavaOpts: String, workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
+      val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
 
         override def getStatus: Instance = {
           new Instance()
-            .withPublicDnsName(InetAddress.getLocalHost.getHostName)
+            .withPublicDnsName(EC2Util.publicHostname)
             .withState(new InstanceState().withName(""))
         }
 
         override def terminate(): TerminateInstancesResult = null
 
         override def close(): Unit = {}
-      }, control)
+      }
+      val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
+      env.putAll(workerEnvironment.apply(node))
+      val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
+      (node, control)
     }
   }
 

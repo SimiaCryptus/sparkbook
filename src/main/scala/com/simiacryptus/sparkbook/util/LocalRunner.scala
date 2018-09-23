@@ -19,9 +19,12 @@
 package com.simiacryptus.sparkbook.util
 
 import com.simiacryptus.lang.SerializableSupplier
+import com.simiacryptus.notebook.MarkdownNotebookOutput
 import com.simiacryptus.util.test.SysOutInterceptor
+import org.slf4j.{Logger, LoggerFactory}
 
-trait LocalRunner[T] extends SerializableSupplier[T] {
+trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
+
   def main(args: Array[String]): Unit = {
     System.setProperty("spark.master", "local[16]")
     System.setProperty("spark.app.name", "local")
@@ -29,6 +32,7 @@ trait LocalRunner[T] extends SerializableSupplier[T] {
     try {
       get()
     } finally {
+      logger.warn("Exiting node worker", new RuntimeException("Stack Trace"))
       System.exit(0)
     }
 

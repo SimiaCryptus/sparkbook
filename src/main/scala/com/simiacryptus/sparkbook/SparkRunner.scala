@@ -20,7 +20,6 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
-import java.util
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
@@ -32,12 +31,18 @@ import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
 
 trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
-  @transient private lazy val envTuple = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
-    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
-    (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
+  @transient protected lazy val envTuple = {
+    try {
+      val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+      SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
+      (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
+    } catch {
+      case e:Throwable=>
+        logger.warn("Err",e)
+        (Map.empty,"","")
+    }
   }
-  @transient var masterUrl = "local[4]"
+  @transient protected var masterUrl = "local[4]"
 
   @transient def emailAddress: String = envTuple._3
 
@@ -55,18 +60,25 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     }
   }
 
+  def sparkProperties = Map(
+    "spark.executor.memory" -> workerMemory,
+    "spark.executor.cores" -> workerCores.toString,
+    "spark.master" -> masterUrl,
+    "spark.app.name" -> getClass.getCanonicalName
+  )
+
+  def javaProperties = Map(
+    "s3bucket" -> s3bucket
+  )
+
   def launch(): Unit = {
     val masterRunner = new SparkMasterRunner(
       nodeSettings = masterSettings,
       maxHeap = Option(driverMemory),
-      properties = Map(
-        "s3bucket" -> s3bucket,
-        "spark.executor.memory" -> workerMemory,
-        "spark.app.name" -> getClass.getCanonicalName
-      )) {
-
+      sparkProperties = sparkProperties,
+      javaProperties = javaProperties
+    ) {
       override def runner: EC2RunnerLike = SparkRunner.this.runner
-
     }
     val (masterNode, masterControl, future) = runner.run(
       masterSettings,
@@ -74,36 +86,48 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
         logger.info("Setting hostname to " + node.getStatus.getPublicDnsName)
         masterRunner.copy(hostname = node.getStatus.getPublicDnsName)
       },
-      javaopts = masterRunner.javaOpts,
-      workerEnvironment = _ => new java.util.HashMap[String, String]()
+      workerEnvironment = node => {
+        val map = new java.util.HashMap[String, String]()
+        map.put("SPARK_WORKER_MEMORY", workerMemory)
+        map.put("SPARK_LOCAL_IP", node.getStatus.getPrivateIpAddress)
+        map.put("SPARK_PUBLIC_DNS", node.getStatus.getPublicDnsName)
+        map
+      }
     )
     masterUrl = "spark://" + masterNode.getStatus.getPublicDnsName + ":7077"
     //EC2Runner.browse(masterNode, 8080)
+    val slaveRunner = new SparkSlaveRunner(
+      master = masterUrl,
+      nodeSettings = workerSettings,
+      cores = workerCores,
+      memory = workerMemory,
+      numberOfWorkersPerNode = SparkRunner.this.numberOfWorkersPerNode,
+      sparkProperties = sparkProperties,
+      javaProperties = javaProperties ++ sparkProperties,
+      environment = Map(
+        "SPARK_WORKER_MEMORY" -> workerMemory,
+        "SPARK_MASTER_HOST" -> masterNode.getStatus.getPublicDnsName,
+        "SPARK_WORKER_CORES" -> workerCores.toString
+      )
+    ) {
+      override def runner = SparkRunner.this.runner
+    }
     val workers = (1 to numberOfWorkerNodes).par.map(f = i => {
       logger.info(s"Starting worker #$i/$numberOfWorkerNodes")
-      val slaveRunner = new SparkSlaveRunner(
-        master = masterUrl,
-        nodeSettings = workerSettings,
-        memory = workerMemory,
-        numberOfWorkersPerNode = SparkRunner.this.numberOfWorkersPerNode,
-        sparkConfig = Map(
-          "spark.executor.memory" -> workerMemory,
-          "spark.master" -> masterUrl,
-          "spark.app.name" -> getClass.getCanonicalName
-        ),
-        javaConfig = Map(
-          "s3bucket" -> s3bucket
-        )
-      ) {
-        override def runner = SparkRunner.this.runner
-      }
       runner.run[Object](
         workerSettings,
         (node: EC2Util.EC2Node) => {
-          slaveRunner.copy(hostname = node.getStatus.getPublicDnsName)
+          slaveRunner.copy(hostname = node.getStatus.getPublicDnsName, environment = slaveRunner.environment ++ Map(
+            "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
+            "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName
+          ))
         },
-        javaopts = slaveRunner.javaOpts,
-        workerEnvironment = (node: EC2Util.EC2Node) => new java.util.HashMap[String, String]()
+        workerEnvironment = (node: EC2Util.EC2Node) => {
+          val map = new java.util.HashMap[String, String]()
+          map.put("SPARK_LOCAL_IP", node.getStatus.getPrivateIpAddress)
+          map.put("SPARK_PUBLIC_DNS", node.getStatus.getPublicDnsName)
+          map
+        }
       )
     }).toList
     try {
@@ -116,12 +140,18 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
       EC2Runner.browse(masterNode, 1080)
       //EC2Runner.browse(masterNode, 4040)
       EC2Runner.join(masterNode)
+      logger.info("Spark task seems to have completed")
+    } catch {
+      case e : Throwable =>
+        logger.warn("Error running task",e)
+        throw e
     } finally {
       workers.foreach(_._1.close())
+      masterControl.close()
     }
   }
 
-  @transient def s3bucket: String = envTuple._2
+  protected val s3bucket: String = envTuple._2
 
   def numberOfWorkersPerNode: Int = 1
 
@@ -130,6 +160,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
   def driverMemory: String = "7g"
 
   def workerMemory: String = "6g"
+  def workerCores: Int = 1
 
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {
     to.instanceType = from.machineType

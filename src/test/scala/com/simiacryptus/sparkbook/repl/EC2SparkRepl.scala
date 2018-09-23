@@ -1,11 +1,12 @@
 package com.simiacryptus.sparkbook.repl
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.EC2SparkTest.envTuple
 import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2SparkRunner}
 
 object EC2SparkRepl extends SparkRepl with EC2SparkRunner[Object] with AWSNotebookRunner[Object] {
 
-  override def s3bucket: String = super.s3bucket
+  @transient override protected val s3bucket: String = envTuple._2
 
   override def numberOfWorkerNodes: Int = 2
 

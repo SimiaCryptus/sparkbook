@@ -37,6 +37,8 @@ object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner[Object] with
 
 object EC2SparkTest extends SparkTest with EC2SparkRunner[Object] with AWSNotebookRunner[Object] {
 
+  @transient override protected val s3bucket: String = envTuple._2
+
   override def numberOfWorkerNodes: Int = 1
 
   override def numberOfWorkersPerNode: Int = 2

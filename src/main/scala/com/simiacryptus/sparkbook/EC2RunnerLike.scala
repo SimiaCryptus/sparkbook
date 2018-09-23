@@ -19,7 +19,6 @@
 
 package com.simiacryptus.sparkbook
 
-import java.util
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
@@ -31,7 +30,7 @@ trait EC2RunnerLike extends Logging {
   def start
   (
     nodeSettings: EC2NodeSettings,
-    javaopts: String = "",
+    javaOpts: String = "",
     workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl)
 
@@ -40,10 +39,10 @@ trait EC2RunnerLike extends Logging {
   (
     nodeSettings: EC2NodeSettings,
     command: EC2Util.EC2Node => SerializableSupplier[T],
-    javaopts: String = "",
+    javaOpts: String = "",
     workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
-    val (node: EC2Util.EC2Node, control: TendrilControl) = start(nodeSettings, javaopts, workerEnvironment)
+    val (node: EC2Util.EC2Node, control: TendrilControl) = start(nodeSettings, javaOpts, workerEnvironment)
     try {
       val runnable = command(node)
       logger.info("Updated runnable: " + runnable)

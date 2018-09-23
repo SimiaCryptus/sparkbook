@@ -22,7 +22,6 @@ package com.simiacryptus.sparkbook
 import java.io.{File, IOException}
 import java.net.{InetAddress, URI, URISyntaxException, URL}
 import java.text.SimpleDateFormat
-import java.util
 import java.util.regex.Pattern
 import java.util.{Date, UUID}
 
@@ -75,7 +74,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
     }
     finally {
       if (shutdownOnQuit) {
-        logger.info("Exiting node worker")
+        logger.warn("Finished notebook", new RuntimeException("Stack Trace"))
         System.exit(0)
       }
     }

@@ -6,6 +6,8 @@ import com.simiacryptus.sparkbook.util.Logging
 import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.SparkSession
 
+import scala.concurrent.duration.FiniteDuration
+
 trait SparkSessionProvider extends Logging {
   @transient lazy val spark: SparkSession = {
     val builder = SparkSession.builder()
@@ -26,6 +28,12 @@ trait SparkSessionProvider extends Logging {
     logger.warn("Initialized sparkSession")
     sparkSession.conf.getAll.foreach(e=>logger.warn(s"Config ${e._1} = ${e._2}"))
     sparkSession
+  }
+
+  def await(duration: FiniteDuration)(test: => Boolean): Unit = {
+    def epoch = System.currentTimeMillis()
+    val timeoutEpoch = epoch + duration.toMillis
+    while (test && epoch < timeoutEpoch) Thread.sleep(1000)
   }
 
   def workerMemory: String = Option(System.getenv("SPARK_WORKER_MEMORY")).getOrElse("60g")

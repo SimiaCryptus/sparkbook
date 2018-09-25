@@ -6,7 +6,7 @@ import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2SparkRunner}
 
 object EC2SparkRepl extends SparkRepl with EC2SparkRunner[Object] with AWSNotebookRunner[Object] {
 
-  @transient override protected val s3bucket: String = envTuple._2
+  override protected val s3bucket: String = envTuple._2
 
   override def numberOfWorkerNodes: Int = 2
 

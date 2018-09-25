@@ -53,7 +53,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
         override def http_port = port
 
         override def apply(log: NotebookOutput): T = {
-          log.asInstanceOf[MarkdownNotebookOutput].setArchiveHome(s3home)
+          log.setArchiveHome(s3home)
           log.onComplete(() => {
             val uploads = S3Util.upload(log);
             sendCompleteEmail(log.getName.toString, log.getRoot, uploads, startTime)

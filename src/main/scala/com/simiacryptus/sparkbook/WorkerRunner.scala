@@ -18,8 +18,7 @@ import scala.util.Random
 
 object WorkerRunner extends Logging {
 
-  def apply[T](parentArchive: URI, fn: (NotebookOutput) => T): T = {
-    val spark = SparkSession.builder().getOrCreate()
+  def apply[T](parentArchive: URI, fn: (NotebookOutput) => T)(implicit spark: SparkSession): T = {
     val childName = UUID.randomUUID().toString
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
     val r = new AtomicReference[T]()
@@ -30,22 +29,22 @@ object WorkerRunner extends Logging {
     r.get()
   }
 
-  def distribute(fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+  def distribute(fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession) = {
     map(rdd, fn)
   }
 
-  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
     mapEval(rdd, fn)
   }
 
-  def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession = SparkSession.builder().getOrCreate()): List[T] = {
+  def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession): List[T] = {
     rdd.map(i => {
       fn(i)
     }).collect().toList
   }
 
 
-  def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+  def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession) = {
     val parentArchive = log.getArchiveHome
     val results: List[String] = repartition(rdd).map(i => {
       val childName = UUID.randomUUID().toString
@@ -74,12 +73,12 @@ object WorkerRunner extends Logging {
     rdd
   }
 
-  def repartition[T:ClassTag](rdd: RDD[T])(implicit spark: SparkSession = SparkSession.builder().getOrCreate()):RDD[T] = {
+  def repartition[T:ClassTag](rdd: RDD[T])(implicit spark: SparkSession):RDD[T] = {
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
-    rdd.flatMap(x=>(0 to 1000).map(y=>x->y)).repartition(numberOfWorkers).mapPartitions(_.map(_._1).toList.distinct.iterator)
+    rdd.repartition(numberOfWorkers).cache()
   }
 
-  def mapPartitions[T:ClassTag, U:ClassTag](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, spark: SparkSession = SparkSession.builder().getOrCreate()) = {
+  def mapPartitions[T:ClassTag, U:ClassTag](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, spark: SparkSession) = {
     val parentArchive = log.getArchiveHome
     val results = repartition(rdd).mapPartitions(i => {
       try {
@@ -92,7 +91,7 @@ object WorkerRunner extends Logging {
           logger.warn("Error in worker", e)
           throw e
       }
-    })
+    }).cache()
     for (id <- results.map(_._2).distinct().collect()) {
       val root = log.getRoot
       log.p("Subreport: %s %s %s %s", id,
@@ -110,7 +109,7 @@ case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput,
 
   override def shutdownOnQuit: Boolean = false
 
-  override def s3bucket: String = if (parent.getScheme.startsWith("s3")) parent.getHost else null
+  override val s3bucket: String = if (parent.getScheme.startsWith("s3")) parent.getHost else null
 
   override def emailAddress: String = null
 

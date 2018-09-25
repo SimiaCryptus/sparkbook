@@ -140,7 +140,7 @@ object EC2Runner extends Logging {
 
 trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
   Tendril.getKryo.copy(this)
-  @transient private lazy val envTuple = {
+  @transient protected lazy val envTuple = {
     val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
@@ -148,7 +148,7 @@ trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
 
   @transient def envSettings: AwsTendrilEnvSettings = envTuple._1
 
-  @transient def s3bucket: String = envTuple._2
+  val s3bucket: String = envTuple._2
 
   @transient def emailAddress: String = envTuple._3
 

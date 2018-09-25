@@ -22,12 +22,16 @@ package com.simiacryptus.sparkbook
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.lang.SerializableFunction
 import com.simiacryptus.notebook.NotebookOutput
+import com.simiacryptus.sparkbook.EC2SparkTest.envTuple
+import com.simiacryptus.sparkbook.repl.SparkSessionProvider
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{LocalAppSettings, LocalRunner, Logging, ScalaJson}
 
 object LocalSparkTest extends SparkTest with LocalRunner[Object] with NotebookRunner[Object]
 
 object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner[Object] with NotebookRunner[Object] {
+
+  override protected val s3bucket: String = envTuple._2
 
   override def numberOfWorkersPerNode: Int = 2
 
@@ -37,7 +41,7 @@ object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner[Object] with
 
 object EC2SparkTest extends SparkTest with EC2SparkRunner[Object] with AWSNotebookRunner[Object] {
 
-  @transient override protected val s3bucket: String = envTuple._2
+  override protected val s3bucket: String = envTuple._2
 
   override def numberOfWorkerNodes: Int = 1
 
@@ -54,7 +58,7 @@ object EC2SparkTest extends SparkTest with EC2SparkRunner[Object] with AWSNotebo
 }
 
 
-abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] with Logging {
+abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] with Logging with SparkSessionProvider {
 
   override def apply(log: NotebookOutput): Object = {
     for (i <- 0 until 3) {
@@ -66,7 +70,7 @@ abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] wi
         LocalAppSettings.read().get("worker.index").foreach(idx => {
           System.setProperty("CUDA_DEVICES", idx)
         })
-      })(log)
+      })(log, spark = spark)
       Thread.sleep(30000)
     }
     null

@@ -27,6 +27,7 @@ trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
 
   def main(args: Array[String]): Unit = {
     System.setProperty("spark.master", "local[16]")
+    System.setProperty("spark.driver.memory", "32g")
     System.setProperty("spark.app.name", "local")
     SysOutInterceptor.INSTANCE.init
     try {

@@ -20,7 +20,6 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
-import java.net.InetAddress
 
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}

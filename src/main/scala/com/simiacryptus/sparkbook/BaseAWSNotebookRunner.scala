@@ -21,15 +21,14 @@ package com.simiacryptus.sparkbook
 
 import java.io.{File, IOException}
 import java.net.{InetAddress, URI, URISyntaxException, URL}
-import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.regex.Pattern
-import java.util.{Date, UUID}
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.simiacryptus.aws._
 import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
-import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
+import com.simiacryptus.notebook.NotebookOutput
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 import org.apache.commons.io.{FileUtils, IOUtils}

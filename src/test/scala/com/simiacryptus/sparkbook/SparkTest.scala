@@ -22,7 +22,6 @@ package com.simiacryptus.sparkbook
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.lang.SerializableFunction
 import com.simiacryptus.notebook.NotebookOutput
-import com.simiacryptus.sparkbook.EC2SparkTest.envTuple
 import com.simiacryptus.sparkbook.repl.SparkSessionProvider
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{LocalAppSettings, LocalRunner, Logging, ScalaJson}

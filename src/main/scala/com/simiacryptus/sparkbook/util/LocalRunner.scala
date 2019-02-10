@@ -19,9 +19,7 @@
 package com.simiacryptus.sparkbook.util
 
 import com.simiacryptus.lang.SerializableSupplier
-import com.simiacryptus.notebook.MarkdownNotebookOutput
 import com.simiacryptus.util.test.SysOutInterceptor
-import org.slf4j.{Logger, LoggerFactory}
 
 trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
 

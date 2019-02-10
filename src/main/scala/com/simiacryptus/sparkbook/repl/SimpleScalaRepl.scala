@@ -23,8 +23,8 @@ import java.util.concurrent.TimeUnit
 
 import com.simiacryptus.notebook.StringQuery.SimpleStringQuery
 import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook._
+import com.simiacryptus.sparkbook.util.Java8Util._
 import javax.script.ScriptEngineManager
 
 import scala.reflect.runtime.currentMirror

@@ -19,7 +19,6 @@
 
 package com.simiacryptus.sparkbook
 
-import java.io.File
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings

@@ -19,8 +19,6 @@
 
 package com.simiacryptus.sparkbook
 
-import java.net.InetAddress
-
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
 import com.simiacryptus.aws.EC2Util.EC2Node

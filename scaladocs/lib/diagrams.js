@@ -321,4 +321,3 @@ diagrams.removeClass = function(svgElem, oldClass) {
 	classes = $.grep(classes.split(/\s+/), function(n, i) { return n != oldClass; }).join(' ');
 	svgElem.attr("class", classes);
 };
-

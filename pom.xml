@@ -32,6 +32,7 @@
 
     <groupId>com.simiacryptus</groupId>
     <artifactId>sparkbook</artifactId>
+    <description>Literate Notebooks with EC2 and Spark</description>
 
     <properties>
         <github.project>sparkbook</github.project>

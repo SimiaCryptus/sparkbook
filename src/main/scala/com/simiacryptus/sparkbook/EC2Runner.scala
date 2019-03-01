@@ -34,7 +34,8 @@ import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.UserSettings
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
-import com.simiacryptus.util.Util
+import com.simiacryptus.util.ReportingUtil.AUTO_BROWSE
+import com.simiacryptus.util.{ReportingUtil, Util}
 import com.simiacryptus.util.test.SysOutInterceptor
 
 import scala.util.{Success, Try}
@@ -108,7 +109,7 @@ object EC2Runner extends Logging {
 
   @throws[IOException]
   def browse(uri: URI): Unit = {
-    if (Util.AUTO_BROWSE && !GraphicsEnvironment.isHeadless && Desktop.isDesktopSupported && Desktop.getDesktop.isSupported(Desktop.Action.BROWSE)) Desktop.getDesktop.browse(uri)
+    if (ReportingUtil.AUTO_BROWSE && !GraphicsEnvironment.isHeadless && Desktop.isDesktopSupported && Desktop.getDesktop.isSupported(Desktop.Action.BROWSE)) Desktop.getDesktop.browse(uri)
   }
 
   /**

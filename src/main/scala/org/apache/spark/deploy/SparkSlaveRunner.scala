@@ -39,9 +39,7 @@ import scala.collection.JavaConverters._
 import scala.util.Random
 
 object SparkSlaveRunner extends Logging {
-  lazy val s3 = {
-    AmazonS3ClientBuilder.standard.withRegion(Regions.US_WEST_2).build
-  }
+  lazy val s3 = AmazonS3ClientBuilder.standard.withRegion(EC2Util.REGION).build
 
   def stage(bucket: String, key: String) = {
     //logger.info(s"Staging $bucket/$key")

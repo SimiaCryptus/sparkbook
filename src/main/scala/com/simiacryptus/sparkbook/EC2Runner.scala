@@ -48,7 +48,7 @@ object EC2Runner extends Logging {
     * @return the ec 2
     */
   @transient
-  lazy val ec2: AmazonEC2 = AmazonEC2ClientBuilder.standard.withRegion(Regions.US_EAST_1).build
+  lazy val ec2: AmazonEC2 = AmazonEC2ClientBuilder.standard.withRegion(EC2Util.REGION).build
 
   /**
     * Gets iam.
@@ -56,7 +56,7 @@ object EC2Runner extends Logging {
     * @return the iam
     */
   @transient
-  lazy val iam: AmazonIdentityManagement = AmazonIdentityManagementClientBuilder.standard.withRegion(Regions.US_EAST_1).build
+  lazy val iam: AmazonIdentityManagement = AmazonIdentityManagementClientBuilder.standard.withRegion(EC2Util.REGION).build
 
   /**
     * Gets s 3.
@@ -64,10 +64,10 @@ object EC2Runner extends Logging {
     * @return the s 3
     */
   @transient
-  lazy val s3: AmazonS3 = AmazonS3ClientBuilder.standard.withRegion(Regions.US_WEST_2).build
+  lazy val s3: AmazonS3 = AmazonS3ClientBuilder.standard.withRegion(EC2Util.REGION).build
 
   lazy val (envSettings, s3bucket, emailAddress) = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(ec2, iam, s3))
+    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(ec2, iam, s3))
     val load = UserSettings.load
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, load.emailAddress)
     (envSettings, envSettings.bucket, load.emailAddress)
@@ -142,7 +142,7 @@ object EC2Runner extends Logging {
 trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
   Tendril.getKryo.copy(this)
   @transient protected lazy val envTuple = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }

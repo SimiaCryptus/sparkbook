@@ -33,7 +33,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
   @transient protected lazy val envTuple = {
     try {
-      val envSettings = ScalaJson.cache(new File("ec2-settings.json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+      val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
       SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
       (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
     } catch {

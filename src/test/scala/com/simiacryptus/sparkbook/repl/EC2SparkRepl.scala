@@ -24,15 +24,17 @@ import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2SparkRunner}
 
 object EC2SparkRepl extends SparkRepl with EC2SparkRunner[Object] with AWSNotebookRunner[Object] {
 
-  override protected val s3bucket: String = envTuple._2
+  override def hiveRoot: Option[String] = super.hiveRoot
 
-  override def numberOfWorkerNodes: Int = 2
+  override val s3bucket: String = envTuple._2
 
-  override def numberOfWorkersPerNode: Int = 2
+  override val numberOfWorkerNodes: Int = 2
 
-  override def driverMemory: String = "8g"
+  override val numberOfWorkersPerNode: Int = 2
 
-  override def workerMemory: String = "8g"
+  override val driverMemory: String = "8g"
+
+  override val workerMemory: String = "8g"
 
   override def masterSettings: EC2NodeSettings = EC2NodeSettings.T2_L
 

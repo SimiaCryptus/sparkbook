@@ -22,33 +22,14 @@ package com.simiacryptus.sparkbook.repl
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.esotericsoftware.kryo.Kryo
 import com.simiacryptus.sparkbook.util.Logging
+import org.apache.spark.SparkContext
 import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.SparkSession
 
 import scala.concurrent.duration.FiniteDuration
 
 trait SparkSessionProvider extends Logging {
-  @transient lazy val spark: SparkSession = {
-    val builder = SparkSession.builder()
-      .config("fs.s3a.aws.credentials.provider", classOf[DefaultAWSCredentialsProviderChain].getCanonicalName)
-      .config("hive.default.fileformat", "Parquet")
-      .config("spark.io.compression.codec", "lz4")
-    //      .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-    //      .config("spark.kryo.registrationRequired","true")
-    //      .config("spark.kryo.registrator",classOf[_KryoRegistrator].getCanonicalName)
-    //      .config("spark.kryoserializer.buffer.max", "128m")
-    //      .config("spark.kryoserializer.buffer", "64m")
-    if (hiveRoot.isDefined) {
-      builder.config("spark.sql.warehouse.dir", hiveRoot.get)
-      builder.enableHiveSupport()
-    }
-    builder.config("spark.executor.memory", workerMemory)
-    val sparkSession = builder.getOrCreate()
-    logger.warn("Initialized sparkSession")
-    sparkSession.conf.getAll.foreach(e=>logger.warn(s"Config ${e._1} = ${e._2}"))
-    sparkSession
-  }
-
+  @transient lazy val spark: SparkSession = SparkSession.getActiveSession.get
   def await(duration: FiniteDuration)(test: => Boolean): Unit = {
     def epoch = System.currentTimeMillis()
     val timeoutEpoch = epoch + duration.toMillis

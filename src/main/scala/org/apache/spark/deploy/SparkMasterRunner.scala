@@ -68,6 +68,8 @@ case class SparkMasterRunner
       logger.info("Spark master = " + master)
       System.setProperty("spark.master", master)
       System.setProperty("spark.app.name", "default")
+      System.setProperty("spark.submit.deployMode", "client")
+      System.setProperty("spark.executor.cores", "1")
       FileUtils.write(new File(s"conf${File.separator}spark-defaults.conf"), sparkProperties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
       org.apache.spark.deploy.master.Master.main(Array(
         "--host", hostname,

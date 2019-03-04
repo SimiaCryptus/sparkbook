@@ -101,10 +101,10 @@ case class SparkSlaveRunner
   override def get(): Object = {
     try {
       //if (null != javaConfig) javaConfig.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
-      for (i <- 0 until numberOfWorkersPerNode) {
-        val workingDir = new File(s"spark_workers${File.separator}%d".format(i))
+      for (workerIndex <- 0 until numberOfWorkersPerNode) {
+        val workingDir = new File(s"spark_workers${File.separator}%d".format(workerIndex))
         workingDir.mkdirs()
-        prepareWorkingDirectory(workingDir, i)
+        prepareWorkingDirectory(workingDir, workerIndex)
         val conf = new File(workingDir, s"conf${File.separator}spark-defaults.conf")
         FileUtils.write(conf, (sparkProperties ++ Map(
           "spark.executor.extraClassPath" -> (new File(".").getAbsolutePath + "/lib/*.jar"),
@@ -113,10 +113,12 @@ case class SparkSlaveRunner
           "spark.shuffle.service.enabled" -> "false"
         )).map(e => "%s\t%s".format(e._1, e._2 //.replaceAll(":", "\\\\:")
         )).mkString("\n"), Charset.forName("UTF-8"))
+        val tmpDir = System.getProperty("java.io.tmpdir").stripSuffix(File.separator) + File.separator + workerIndex + File.separator
+        new File(tmpDir).mkdirs()
         SingleSlaveRunner(
           args = Array(
-            "--webui-port", (uiPort + i).toString,
-            "--port", (workerPort + i).toString,
+            "--webui-port", (uiPort + workerIndex).toString,
+            "--port", (workerPort + workerIndex).toString,
             "--cores", cores.toString,
             "--memory", memory,
             master
@@ -126,7 +128,10 @@ case class SparkSlaveRunner
             "SPARK_HOME" -> workingDir.getAbsolutePath,
             "SPARK_WORKER_MEMORY" -> memory
           ),
-          javaProperties = javaProperties
+          javaProperties = javaProperties ++ Map(
+            "SHUTDOWN_ON_EXIT" -> "false",
+            "java.io.tmpdir" -> tmpDir
+          )
         ).start()
       }
       logger.info(s"Slave init to $master running on ${new File(".").getAbsolutePath}")

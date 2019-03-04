@@ -37,9 +37,9 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
       SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
       (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
     } catch {
-      case e:Throwable=>
-        logger.warn("Err",e)
-        (Map.empty,"","")
+      case e: Throwable =>
+        logger.warn("Err", e)
+        (Map.empty, "", "")
     }
   }
   @transient protected var masterUrl = "local[4]"
@@ -51,6 +51,8 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
   def workerSettings: EC2NodeSettings
 
   def runner: EC2RunnerLike
+
+  def hiveRoot: Option[String] = None
 
   def main(args: Array[String]): Unit = {
     try {
@@ -133,8 +135,15 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     try {
       val thisInstance: SparkRunner[T] = this
       require(null != masterControl)
+      val sparkInitializer = SparkInitializer(
+        masterUrl = masterUrl,
+        workerMemory = workerMemory,
+        numberOfExecutors = numberOfWorkerNodes * numberOfWorkersPerNode,
+        hiveRoot = hiveRoot
+      )
       masterControl.start(() => {
         require(null != thisInstance)
+        sparkInitializer.initSparkEnvironment()
         thisInstance.get()
       })
       EC2Runner.browse(masterNode, 1080)
@@ -142,8 +151,8 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
       EC2Runner.join(masterNode)
       logger.info("Spark task seems to have completed")
     } catch {
-      case e : Throwable =>
-        logger.warn("Error running task",e)
+      case e: Throwable =>
+        logger.warn("Error running task", e)
         throw e
     } finally {
       workers.foreach(_._1.close())
@@ -151,16 +160,18 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     }
   }
 
+
   protected val s3bucket: String = envTuple._2
 
-  def numberOfWorkersPerNode: Int = 1
+  val numberOfWorkersPerNode: Int = 1
 
-  def numberOfWorkerNodes: Int = 1
+  val numberOfWorkerNodes: Int = 1
 
-  def driverMemory: String = "7g"
+  val driverMemory: String = "7g"
 
-  def workerMemory: String = "6g"
-  def workerCores: Int = 1
+  val workerMemory: String = "6g"
+
+  val workerCores: Int = 1
 
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {
     to.instanceType = from.machineType
@@ -170,3 +181,5 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
   }
 
 }
+
+

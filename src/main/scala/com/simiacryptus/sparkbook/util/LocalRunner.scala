@@ -18,8 +18,11 @@
  */
 package com.simiacryptus.sparkbook.util
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.simiacryptus.lang.SerializableSupplier
 import com.simiacryptus.util.test.SysOutInterceptor
+import org.apache.spark.sql.SparkSession
 
 trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
 
@@ -28,6 +31,9 @@ trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
     System.setProperty("spark.driver.memory", "32g")
     System.setProperty("spark.app.name", "local")
     SysOutInterceptor.INSTANCE.init
+    SparkSession.setActiveSession(SparkSession.builder()
+      .config("fs.s3a.aws.credentials.provider", classOf[ProfileCredentialsProvider].getCanonicalName)
+      .getOrCreate())
     try {
       get()
     } finally {

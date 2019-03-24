@@ -25,7 +25,6 @@ import java.nio.charset.Charset
 import java.util
 import java.util.zip.ZipFile
 
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
 import com.simiacryptus.aws.exe.EC2NodeSettings
@@ -81,8 +80,6 @@ case class SparkSlaveRunner
   val workerPort: Int = 7078 + Random.nextInt(128)
   val uiPort: Int = 8080 + Random.nextInt(128)
 
-  override def runner: EC2RunnerLike = new DefaultEC2Runner
-
   override def start(args: Array[String]) = {
     new File("launcher/target/scala-2.11").mkdirs()
     runner.run[Object](
@@ -97,6 +94,8 @@ case class SparkSlaveRunner
       ).asJava)
     )
   }
+
+  override def runner: EC2RunnerLike = new DefaultEC2Runner
 
   override def get(): Object = {
     try {

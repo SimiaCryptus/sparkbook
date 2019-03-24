@@ -52,17 +52,6 @@ object WorkerRunner extends Logging {
     map(rdd, fn)
   }
 
-  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
-    mapEval(rdd, fn)
-  }
-
-  def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession): List[T] = {
-    rdd.map(i => {
-      fn(i)
-    }).collect().toList
-  }
-
-
   def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession) = {
     val parentArchive = log.getArchiveHome
     val results: List[String] = repartition(rdd).map(i => {
@@ -86,18 +75,28 @@ object WorkerRunner extends Logging {
     }
   }
 
+  def repartition[T: ClassTag](rdd: RDD[T])(implicit spark: SparkSession): RDD[T] = {
+    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
+    rdd.repartition(numberOfWorkers).cache()
+  }
+
+  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
+    mapEval(rdd, fn)
+  }
+
   def rdd(implicit spark: SparkSession): RDD[Long] = {
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
     val rdd = spark.sparkContext.range(0, numberOfWorkers).coalesce(numberOfWorkers, true)
     rdd
   }
 
-  def repartition[T:ClassTag](rdd: RDD[T])(implicit spark: SparkSession):RDD[T] = {
-    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
-    rdd.repartition(numberOfWorkers).cache()
+  def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession): List[T] = {
+    rdd.map(i => {
+      fn(i)
+    }).collect().toList
   }
 
-  def mapPartitions[T:ClassTag, U:ClassTag](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, spark: SparkSession) = {
+  def mapPartitions[T: ClassTag, U: ClassTag](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, spark: SparkSession) = {
     val parentArchive = log.getArchiveHome
     val results = repartition(rdd).mapPartitions(i => {
       try {
@@ -125,10 +124,9 @@ object WorkerRunner extends Logging {
 case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput, T], childName: String) extends AWSNotebookRunner[T] {
 
   override val http_port = 1081 + Random.nextInt(64)
+  override val s3bucket: String = if (parent.getScheme.startsWith("s3")) parent.getHost else null
 
   override def shutdownOnQuit: Boolean = false
-
-  override val s3bucket: String = if (parent.getScheme.startsWith("s3")) parent.getHost else null
 
   override def emailAddress: String = null
 

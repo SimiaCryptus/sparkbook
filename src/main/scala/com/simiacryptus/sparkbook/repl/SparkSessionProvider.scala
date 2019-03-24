@@ -19,10 +19,8 @@
 
 package com.simiacryptus.sparkbook.repl
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.esotericsoftware.kryo.Kryo
 import com.simiacryptus.sparkbook.util.Logging
-import org.apache.spark.SparkContext
 import org.apache.spark.serializer.KryoRegistrator
 import org.apache.spark.sql.SparkSession
 
@@ -30,14 +28,18 @@ import scala.concurrent.duration.FiniteDuration
 
 trait SparkSessionProvider extends Logging {
   @transient lazy val spark: SparkSession = SparkSession.getActiveSession.get
+
   def await(duration: FiniteDuration)(test: => Boolean): Unit = {
     def epoch = System.currentTimeMillis()
+
     val timeoutEpoch = epoch + duration.toMillis
     while (test && epoch < timeoutEpoch) Thread.sleep(1000)
   }
 
   def workerMemory: String = Option(System.getenv("SPARK_WORKER_MEMORY")).getOrElse("60g")
+
   def hiveRoot: Option[String] = Option(s3bucket).map(bucket => s"s3a://$bucket/data/")
+
   protected def s3bucket: String = null
 
   def sc = spark.sparkContext

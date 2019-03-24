@@ -18,7 +18,6 @@
  */
 package com.simiacryptus.sparkbook.util
 
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.simiacryptus.lang.SerializableSupplier
 import com.simiacryptus.util.test.SysOutInterceptor

@@ -42,6 +42,12 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
         (Map.empty, "", "")
     }
   }
+  val numberOfWorkersPerNode: Int = 1
+  val numberOfWorkerNodes: Int = 1
+  val driverMemory: String = "7g"
+  val workerMemory: String = "6g"
+  val workerCores: Int = 1
+  protected val s3bucket: String = envTuple._2
   @transient protected var masterUrl = "local[4]"
 
   @transient def emailAddress: String = envTuple._3
@@ -52,8 +58,6 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
   def runner: EC2RunnerLike
 
-  def hiveRoot: Option[String] = None
-
   def main(args: Array[String]): Unit = {
     try {
       launch()
@@ -61,17 +65,6 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
       case e: Throwable => logger.warn("Error in application", e)
     }
   }
-
-  def sparkProperties = Map(
-    "spark.executor.memory" -> workerMemory,
-    "spark.executor.cores" -> workerCores.toString,
-    "spark.master" -> masterUrl,
-    "spark.app.name" -> getClass.getCanonicalName
-  )
-
-  def javaProperties = Map(
-    "s3bucket" -> s3bucket
-  )
 
   def launch(): Unit = {
     val masterRunner = new SparkMasterRunner(
@@ -160,18 +153,18 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     }
   }
 
+  def hiveRoot: Option[String] = None
 
-  protected val s3bucket: String = envTuple._2
+  def sparkProperties = Map(
+    "spark.executor.memory" -> workerMemory,
+    "spark.executor.cores" -> workerCores.toString,
+    "spark.master" -> masterUrl,
+    "spark.app.name" -> getClass.getCanonicalName
+  )
 
-  val numberOfWorkersPerNode: Int = 1
-
-  val numberOfWorkerNodes: Int = 1
-
-  val driverMemory: String = "7g"
-
-  val workerMemory: String = "6g"
-
-  val workerCores: Int = 1
+  def javaProperties = Map(
+    "s3bucket" -> s3bucket
+  )
 
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {
     to.instanceType = from.machineType

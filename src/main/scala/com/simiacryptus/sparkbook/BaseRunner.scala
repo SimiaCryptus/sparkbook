@@ -43,7 +43,7 @@ trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   }
 
   def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
-    runner.run(nodeSettings, _=>this, javaOpts, _ => new java.util.HashMap[String, String](environment))
+    runner.run(nodeSettings, _ => this, javaOpts, _ => new java.util.HashMap[String, String](environment))
   }
 
   def environment: Map[String, String] = Map("SPARK_HOME" -> ".")

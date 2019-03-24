@@ -24,7 +24,6 @@ import java.io.{File, IOException}
 import java.net.URI
 import java.util.concurrent.{Executors, TimeUnit}
 
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, AmazonIdentityManagementClientBuilder}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
@@ -34,8 +33,7 @@ import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.UserSettings
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
-import com.simiacryptus.util.ReportingUtil.AUTO_BROWSE
-import com.simiacryptus.util.{ReportingUtil, Util}
+import com.simiacryptus.util.ReportingUtil
 import com.simiacryptus.util.test.SysOutInterceptor
 
 import scala.util.{Success, Try}
@@ -146,10 +144,9 @@ trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
+  val s3bucket: String = envTuple._2
 
   @transient def envSettings: AwsTendrilEnvSettings = envTuple._1
-
-  val s3bucket: String = envTuple._2
 
   @transient def emailAddress: String = envTuple._3
 

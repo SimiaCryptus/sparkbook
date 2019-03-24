@@ -24,10 +24,10 @@ import org.apache.spark.sql.SparkSession
 
 case class SparkInitializer
 (
-  masterUrl:String,
-  workerMemory:String,
-  numberOfExecutors:Int,
-  hiveRoot:Option[String]
+  masterUrl: String,
+  workerMemory: String,
+  numberOfExecutors: Int,
+  hiveRoot: Option[String]
 ) {
   def initSparkEnvironment() = {
     val builder = SparkSession.builder()
@@ -50,7 +50,7 @@ case class SparkInitializer
       val executorMemoryStatus = sparkContext.getExecutorMemoryStatus
       println(s"Cluster has ${executorMemoryStatus.size} executors: ${executorMemoryStatus.keys.mkString(",")}");
     } catch {
-      case e : Throwable => e.printStackTrace()
+      case e: Throwable => e.printStackTrace()
     }
     println("Spark Context Initialized")
   }

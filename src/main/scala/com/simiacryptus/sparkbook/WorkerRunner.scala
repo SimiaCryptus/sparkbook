@@ -134,7 +134,6 @@ case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput,
 
   override def apply(log: NotebookOutput): T = {
     logger.info(String.format("Starting report %s at %s", childName, parent))
-    log.setAutobrowse(false)
     log.setArchiveHome(parent)
     log.setName(childName)
     val t = fn.apply(log)

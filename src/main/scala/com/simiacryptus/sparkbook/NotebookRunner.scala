@@ -31,7 +31,7 @@ trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunctio
   def get(): T = {
     try {
       val dateStr = Util.dateStr("yyyyMMddHHmmss")
-      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), http_port, autobrowse)
+      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), http_port)
       try {
         val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")

@@ -98,16 +98,11 @@ object EC2Runner extends Logging {
 
   def browse(node: EC2Util.EC2Node, port: Int = 1080): Unit = {
     try
-      EC2Runner.browse(new URI(String.format("http://%s:" + port + "/", node.getStatus.getPublicDnsName)))
+      ReportingUtil.browse(new URI(String.format("http://%s:" + port + "/", node.getStatus.getPublicDnsName)))
     catch {
       case e: Throwable =>
         logger.info("Error opening browser", e)
     }
-  }
-
-  @throws[IOException]
-  def browse(uri: URI): Unit = {
-    if (ReportingUtil.AUTO_BROWSE && !GraphicsEnvironment.isHeadless && Desktop.isDesktopSupported && Desktop.getDesktop.isSupported(Desktop.Action.BROWSE)) Desktop.getDesktop.browse(uri)
   }
 
   /**

@@ -27,7 +27,11 @@ import org.apache.spark.sql.SparkSession
 import scala.concurrent.duration.FiniteDuration
 
 trait SparkSessionProvider extends Logging {
-  @transient lazy val spark: SparkSession = SparkSession.getActiveSession.get
+  @transient lazy val spark: SparkSession = SparkSession.getActiveSession.getOrElse({
+    val session = SparkSession.builder().getOrCreate()
+    SparkSession.setActiveSession(session)
+    session
+  })
 
   def await(duration: FiniteDuration)(test: => Boolean): Unit = {
     def epoch = System.currentTimeMillis()

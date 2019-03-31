@@ -52,7 +52,7 @@ class SimpleScalaRepl extends InteractiveSetup[Object] {
   override val inputTimeoutSeconds = 300
   val defaultCode = """throw new RuntimeException("End Application")"""
 
-  def accept2(log: NotebookOutput): Object = {
+  def postConfigure(log: NotebookOutput): Object = {
     while (true) {
       def code = {
         new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).print(defaultCode).get(inputTimeoutSeconds, TimeUnit.SECONDS)

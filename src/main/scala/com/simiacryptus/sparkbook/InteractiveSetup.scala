@@ -37,10 +37,10 @@ trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
         .registerModule(DefaultScalaModule)
         .enableDefaultTyping()
     }).print(this).get(inputTimeoutSeconds, TimeUnit.SECONDS)
-    Option(value).getOrElse(this).accept2(log)
+    Option(value).getOrElse(this).postConfigure(log)
   }
 
   def inputTimeoutSeconds = 60
 
-  def accept2(l: NotebookOutput): T
+  def postConfigure(l: NotebookOutput): T
 }

@@ -19,13 +19,42 @@
 
 package com.simiacryptus.sparkbook
 
-import java.io.File
+import java.awt.image.BufferedImage
+import java.io.{File, IOException, OutputStream}
 
 import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
 import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 import com.simiacryptus.util.Util
+import javax.imageio.ImageIO
+
+object NotebookRunner {
+  def withMonitoredImage[T](log: NotebookOutput, contentImage: => BufferedImage)(fn: => T) = {
+    val imageName_content = String.format("etc/image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(String.format("<a href=\"%s\"><img src=\"%s\"></a>", imageName_content, imageName_content))
+    val httpHandle_content = log.getHttpd.addGET(imageName_content, imageName_content + "/jpeg", (r: OutputStream) => {
+      try
+        ImageIO.write(contentImage, "jpeg", r)
+      catch {
+        case e: IOException =>
+          throw new RuntimeException(e)
+      }
+    } : Unit)
+    try {
+      fn
+    } finally {
+      try {
+        httpHandle_content.close()
+        ImageIO.write(contentImage, "jpeg", log.file(imageName_content))
+      } catch {
+        case e: IOException =>
+          throw new RuntimeException(e)
+      }
+    }
+  }
+
+}
 
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
   def get(): T = {

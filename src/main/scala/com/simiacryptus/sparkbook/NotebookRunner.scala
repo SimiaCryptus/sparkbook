@@ -33,7 +33,7 @@ object NotebookRunner {
   def withMonitoredImage[T](log: NotebookOutput, contentImage: => BufferedImage)(fn: => T) = {
     val imageName_content = String.format("etc/image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"%s\"><img src=\"%s\"></a>", imageName_content, imageName_content))
-    val httpHandle_content = log.getHttpd.addGET(imageName_content, imageName_content + "/jpeg", (r: OutputStream) => {
+    val httpHandle_content = log.getHttpd.addGET(imageName_content, "image/jpeg", (r: OutputStream) => {
       try
         ImageIO.write(contentImage, "jpeg", r)
       catch {

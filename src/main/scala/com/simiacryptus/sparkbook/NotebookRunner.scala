@@ -30,27 +30,29 @@ import com.simiacryptus.util.Util
 import javax.imageio.ImageIO
 
 object NotebookRunner {
-  def withMonitoredImage[T](log: NotebookOutput, contentImage: => BufferedImage)(fn: => T) = {
-    val imageName_content = String.format("etc/image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
-    log.p(String.format("<a href=\"%s\"><img src=\"%s\"></a>", imageName_content, imageName_content))
-    val httpHandle_content = log.getHttpd.addGET(imageName_content, "image/jpeg", (r: OutputStream) => {
-      try
-        ImageIO.write(contentImage, "jpeg", r)
+  def withMonitoredImage[T](log: NotebookOutput, contentImage: () => BufferedImage)(fn: => T) = {
+    val imageName_content = String.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/jpeg", (r: OutputStream) => {
+      try {
+        val image = contentImage()
+        if (null != image) ImageIO.write(image, "jpeg", r)
+      }
       catch {
         case e: IOException =>
           throw new RuntimeException(e)
       }
-    } : Unit)
+    }: Unit)
     try {
       fn
     } finally {
       try {
-        httpHandle_content.close()
-        ImageIO.write(contentImage, "jpeg", log.file(imageName_content))
+        val image = contentImage()
+        if (null != image) ImageIO.write(image, "jpeg", log.file(imageName_content))
       } catch {
-        case e: IOException =>
-          throw new RuntimeException(e)
+        case e: Throwable =>
       }
+      httpHandle_content.close()
     }
   }
 
@@ -79,8 +81,8 @@ trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunctio
 
   def http_port = 1080
 
-  def autobrowse = true
-
   def name: String = getClass.getSimpleName
+
+  def autobrowse = true
 
 }

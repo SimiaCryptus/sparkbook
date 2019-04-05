@@ -19,8 +19,7 @@
 
 package com.simiacryptus.sparkbook
 
-import java.awt.{Desktop, GraphicsEnvironment}
-import java.io.{File, IOException}
+import java.io.File
 import java.net.URI
 import java.util.concurrent.{Executors, TimeUnit}
 

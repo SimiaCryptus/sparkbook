@@ -20,6 +20,7 @@
 package com.simiacryptus.sparkbook
 
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -27,20 +28,34 @@ import com.simiacryptus.lang.SerializableFunction
 import com.simiacryptus.notebook.{JsonQuery, MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.sparkbook.util.Java8Util._
 
-trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
+trait RepeatedInteractiveSetup[T <: AnyRef] extends SerializableFunction[NotebookOutput, T] {
   override def apply(log: NotebookOutput): T = {
-    val value = new JsonQuery[InteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
-      new ObjectMapper()
-        .enable(SerializationFeature.INDENT_OUTPUT)
-        .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-        .enable(MapperFeature.USE_STD_BEAN_NAMING)
-        .registerModule(DefaultScalaModule)
-        .enableDefaultTyping()
-    }).print(this).get(inputTimeoutSeconds, TimeUnit.SECONDS)
-    Option(value).getOrElse(this).postConfigure(log)
+    val idx = new AtomicInteger(0)
+    var result: Object = null
+    var value: RepeatedInteractiveSetup[T] = getNext(log)
+    while (null != value) {
+      result = log.subreport[T]("Cmd" + idx.incrementAndGet(), (s: NotebookOutput) => value.postConfigure(s))
+      value = getNext(log)
+    }
+    result.asInstanceOf[T]
   }
 
-  def inputTimeoutSeconds = 60
+  private def getNext(log: NotebookOutput) = {
+    try {
+      new JsonQuery[RepeatedInteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
+        new ObjectMapper()
+          .enable(SerializationFeature.INDENT_OUTPUT)
+          .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+          .enable(MapperFeature.USE_STD_BEAN_NAMING)
+          .registerModule(DefaultScalaModule)
+          .enableDefaultTyping()
+      }).print(this).get(inputTimeoutSeconds, TimeUnit.SECONDS)
+    } catch {
+      case e: Throwable => null
+    }
+  }
+
+  def inputTimeoutSeconds = 600
 
   def postConfigure(l: NotebookOutput): T
 }

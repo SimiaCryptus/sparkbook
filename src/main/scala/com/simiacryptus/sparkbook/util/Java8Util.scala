@@ -37,7 +37,7 @@ object Java8Util {
     }
   }
 
-  implicit def cvt[T <: AnyRef, U <: AnyRef](fn: T ⇒ U): SerializableFunction[T, U] = {
+  implicit def toJavaFunction[T <: AnyRef, U <: AnyRef](fn: T ⇒ U): SerializableFunction[T, U] = {
     new SerializableFunction[T, U] {
       override def apply(x: T): U = fn.apply(x)
     }

@@ -27,10 +27,12 @@ import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 import com.simiacryptus.util.Util
+import com.simiacryptus.util.io.GifSequenceWriter
 import javax.imageio.ImageIO
+import javax.imageio.stream.MemoryCacheImageOutputStream
 
 object NotebookRunner {
-  def withMonitoredImage[T](log: NotebookOutput, contentImage: () => BufferedImage)(fn: => T) = {
+  def withMonitoredJpg[T](contentImage: () => BufferedImage)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/jpeg", (r: OutputStream) => {
@@ -49,6 +51,50 @@ object NotebookRunner {
       try {
         val image = contentImage()
         if (null != image) ImageIO.write(image, "jpeg", log.file(imageName_content))
+      } catch {
+        case e: Throwable =>
+      }
+      httpHandle_content.close()
+    }
+  }
+
+  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage])(fn: => T)(implicit log: NotebookOutput) = {
+    val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
+      try {
+        val images = contentImage()
+        if (null != images) {
+          val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
+          val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
+          for (image <- images) {
+            writer.writeToSequence(image)
+          }
+          writer.close()
+          imageOutputStream.close()
+        }
+      }
+      catch {
+        case e: IOException =>
+          throw new RuntimeException(e)
+      }
+    }: Unit)
+    try {
+      fn
+    } finally {
+      try {
+        val images = contentImage()
+        if (null != images) {
+          val fileContent = log.file(imageName_content)
+          val imageOutputStream = new MemoryCacheImageOutputStream(fileContent)
+          val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
+          for (image <- images) {
+            writer.writeToSequence(image)
+          }
+          writer.close()
+          imageOutputStream.close()
+          fileContent.close()
+        }
       } catch {
         case e: Throwable =>
       }

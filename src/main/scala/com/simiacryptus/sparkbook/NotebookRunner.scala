@@ -58,21 +58,20 @@ object NotebookRunner {
     }
   }
 
+  def gif(images: Seq[BufferedImage])(implicit log: NotebookOutput) = {
+    val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val fileContent = log.file(imageName_content)
+    toGif(fileContent, images)
+    fileContent.close()
+  }
+
   def withMonitoredGif[T](contentImage: () => Seq[BufferedImage])(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
       try {
-        val images = contentImage()
-        if (null != images) {
-          val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
-          val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
-          for (image <- images) {
-            writer.writeToSequence(image)
-          }
-          writer.close()
-          imageOutputStream.close()
-        }
+        toGif(outputStream, contentImage())
       }
       catch {
         case e: IOException =>
@@ -82,26 +81,27 @@ object NotebookRunner {
     try {
       fn
     } finally {
-      try {
-        val images = contentImage()
-        if (null != images) {
-          val fileContent = log.file(imageName_content)
-          val imageOutputStream = new MemoryCacheImageOutputStream(fileContent)
-          val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
-          for (image <- images) {
-            writer.writeToSequence(image)
-          }
-          writer.close()
-          imageOutputStream.close()
-          fileContent.close()
-        }
-      } catch {
-        case e: Throwable =>
+      val images = contentImage()
+      if (null != images) {
+        val fileContent = log.file(imageName_content)
+        toGif(fileContent, images)
+        fileContent.close()
       }
       httpHandle_content.close()
     }
   }
 
+  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
+    if (null != images) {
+      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
+      val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
+      for (image <- images) {
+        writer.writeToSequence(image)
+      }
+      writer.close()
+      imageOutputStream.close()
+    }
+  }
 }
 
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {

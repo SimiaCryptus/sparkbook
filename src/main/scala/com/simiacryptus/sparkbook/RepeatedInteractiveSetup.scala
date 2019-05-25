@@ -43,13 +43,13 @@ trait RepeatedInteractiveSetup[T <: AnyRef] extends SerializableFunction[Noteboo
   private def getNext(log: NotebookOutput) = {
     try {
       new JsonQuery[RepeatedInteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
-        new ObjectMapper()
-          .enable(SerializationFeature.INDENT_OUTPUT)
-          .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-          .enable(MapperFeature.USE_STD_BEAN_NAMING)
-          .registerModule(DefaultScalaModule)
-          .enableDefaultTyping()
-      }).print(this).get(inputTimeoutSeconds, TimeUnit.SECONDS)
+              new ObjectMapper()
+                .enable(SerializationFeature.INDENT_OUTPUT)
+                .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+                .enable(MapperFeature.USE_STD_BEAN_NAMING)
+                .registerModule(DefaultScalaModule)
+                .enableDefaultTyping()
+            }).setValue(this).print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
     } catch {
       case e: Throwable => null
     }

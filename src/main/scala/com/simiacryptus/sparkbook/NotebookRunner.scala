@@ -30,8 +30,37 @@ import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.GifSequenceWriter
 import javax.imageio.ImageIO
 import javax.imageio.stream.MemoryCacheImageOutputStream
+import org.apache.commons.io.IOUtils
 
 object NotebookRunner {
+  def withMonitoredHtml[T](callback: () => String)(fn: => T)(implicit log: NotebookOutput) = {
+    withIFrame(callback, "html", "text/html")(_ => fn)
+  }
+
+  def withIFrame[T](callback: () => String, extension: String, mimeType: String)(fn: String => T)(implicit log: NotebookOutput) = {
+    val fileName = java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong) + "." + extension
+    log.p(s"""<iframe src="etc/${fileName}" style="width:100%; height:400px" ></iframe>""")
+    val httpHandle_content = log.getHttpd.addGET("etc/" + fileName, mimeType, (r: OutputStream) => {
+      try {
+        IOUtils.write(callback(), r, "UTF-8")
+      }
+      catch {
+        case e: IOException =>
+          throw new RuntimeException(e)
+      }
+    }: Unit)
+    try {
+      fn("etc/" + fileName)
+    } finally {
+      try {
+        IOUtils.write(callback(), log.file(fileName), "UTF-8")
+      } catch {
+        case e: Throwable =>
+      }
+      httpHandle_content.close()
+    }
+  }
+
   def withMonitoredJpg[T](contentImage: () => BufferedImage)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))

@@ -55,7 +55,7 @@ class SimpleScalaRepl extends InteractiveSetup[Object] {
   def postConfigure(log: NotebookOutput): Object = {
     while (true) {
       def code = {
-        new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).print(defaultCode).get(inputTimeoutSeconds, TimeUnit.SECONDS)
+        new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput]).setValue(defaultCode).print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
       }
 
       log.eval(() => {

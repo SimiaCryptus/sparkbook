@@ -83,7 +83,7 @@ class SparkRepl extends SerializableFunction[NotebookOutput, Object] with SparkS
     init()
 
     def code = new SimpleStringQuery(log.asInstanceOf[MarkdownNotebookOutput])
-      .print(defaultCmd).get(inputTimeout, TimeUnit.MINUTES)
+      .setValue(defaultCmd).print().get(inputTimeout, TimeUnit.MINUTES)
 
     while (shouldContinue()) {
       try {

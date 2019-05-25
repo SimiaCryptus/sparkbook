@@ -25,8 +25,9 @@ import org.apache.spark.sql.SparkSession
 
 trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
 
+  def spark_master = "local[16]"
   def main(args: Array[String]): Unit = {
-    System.setProperty("spark.master", "local[16]")
+    System.setProperty("spark.master", spark_master)
     System.setProperty("spark.driver.memory", "32g")
     System.setProperty("spark.app.name", "local")
     SysOutInterceptor.INSTANCE.init

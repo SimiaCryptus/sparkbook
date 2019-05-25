@@ -42,12 +42,12 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
         (Map.empty, "", "")
     }
   }
-  val numberOfWorkersPerNode: Int = 1
-  val numberOfWorkerNodes: Int = 1
-  val driverMemory: String = "7g"
-  val workerMemory: String = "6g"
-  val workerCores: Int = 1
-  protected val s3bucket: String = envTuple._2
+  def numberOfWorkersPerNode: Int = 1
+  def numberOfWorkerNodes: Int = 1
+  def driverMemory: String = "7g"
+  def workerMemory: String = "6g"
+  def workerCores: Int = 1
+  protected def s3bucket: String = envTuple._2
   @transient protected var masterUrl = "local[4]"
 
   @transient def emailAddress: String = envTuple._3
@@ -65,7 +65,6 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
       case e: Throwable => logger.warn("Error in application", e)
     }
   }
-
   def launch(): Unit = {
     val masterRunner = new SparkMasterRunner(
       nodeSettings = masterSettings,

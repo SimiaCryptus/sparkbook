@@ -1,9 +1,9 @@
 <!DOCTYPE html >
 <html>
         <head>
-          <title>NotebookRunner - sparkbook 1.7.0 API - com.simiacryptus.sparkbook.NotebookRunner</title>
-          <meta name="description" content="NotebookRunner - sparkbook 1.7.0 API - com.simiacryptus.sparkbook.NotebookRunner" />
-          <meta name="keywords" content="NotebookRunner sparkbook 1.7.0 API com.simiacryptus.sparkbook.NotebookRunner" />
+          <title>NotebookRunner - sparkbook 1.7.1 API - com.simiacryptus.sparkbook.NotebookRunner</title>
+          <meta name="description" content="NotebookRunner - sparkbook 1.7.1 API - com.simiacryptus.sparkbook.NotebookRunner" />
+          <meta name="keywords" content="NotebookRunner sparkbook 1.7.1 API com.simiacryptus.sparkbook.NotebookRunner" />
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
       <link href="../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
@@ -261,6 +261,23 @@
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#gif" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="gif(images:Seq[java.awt.image.BufferedImage])(implicitlog:com.simiacryptus.notebook.NotebookOutput):Unit"></a>
+      <a id="gif(Seq[BufferedImage])(NotebookOutput):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">gif</span><span class="params">(<span name="images">images: <a href="../../../scala/package.html#Seq[+A]=Seq[A]" class="extmbr" name="scala.Seq">Seq</a>[<span class="extype" name="java.awt.image.BufferedImage">BufferedImage</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="log">log: <span class="extype" name="com.simiacryptus.notebook.NotebookOutput">NotebookOutput</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@gif(images:Seq[java.awt.image.BufferedImage])(implicitlog:com.simiacryptus.notebook.NotebookOutput):Unit" title="Permalink" target="_top">
+        <img src="../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
     </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="hashCode():Int"></a>
       <a id="hashCode():Int"></a>
@@ -363,6 +380,23 @@
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#toGif" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="toGif[T](outputStream:java.io.OutputStream,images:Seq[java.awt.image.BufferedImage]):Unit"></a>
+      <a id="toGif[T](OutputStream,Seq[BufferedImage]):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">toGif</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="outputStream">outputStream: <span class="extype" name="java.io.OutputStream">OutputStream</span></span>, <span name="images">images: <a href="../../../scala/package.html#Seq[+A]=Seq[A]" class="extmbr" name="scala.Seq">Seq</a>[<span class="extype" name="java.awt.image.BufferedImage">BufferedImage</span>]</span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@toGif[T](outputStream:java.io.OutputStream,images:Seq[java.awt.image.BufferedImage]):Unit" title="Permalink" target="_top">
+        <img src="../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
     </li><li name="scala.AnyRef#toString" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="toString():String"></a>
       <a id="toString():String"></a>
@@ -449,19 +483,70 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#withMonitoredImage" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="withMonitoredImage[T](log:com.simiacryptus.notebook.NotebookOutput,contentImage:()=&gt;java.awt.image.BufferedImage)(fn:=&gt;T):T"></a>
-      <a id="withMonitoredImage[T](NotebookOutput,()⇒BufferedImage)(⇒T):T"></a>
+    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#withIFrame" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="withIFrame[T](callback:()=&gt;String,extension:String,mimeType:String)(fn:String=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T"></a>
+      <a id="withIFrame[T](()⇒String,String,String)((String)⇒T)(NotebookOutput):T"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">withMonitoredImage</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="log">log: <span class="extype" name="com.simiacryptus.notebook.NotebookOutput">NotebookOutput</span></span>, <span name="contentImage">contentImage: () ⇒ <span class="extype" name="java.awt.image.BufferedImage">BufferedImage</span></span>)</span><span class="params">(<span name="fn">fn: ⇒ <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredImage.T">T</span></span>)</span><span class="result">: <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredImage.T">T</span></span>
+        <span class="name">withIFrame</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="callback">callback: () ⇒ <span class="extype" name="scala.Predef.String">String</span></span>, <span name="extension">extension: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="mimeType">mimeType: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="params">(<span name="fn">fn: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withIFrame.T">T</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="log">log: <span class="extype" name="com.simiacryptus.notebook.NotebookOutput">NotebookOutput</span></span>)</span><span class="result">: <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withIFrame.T">T</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@withMonitoredImage[T](log:com.simiacryptus.notebook.NotebookOutput,contentImage:()=&gt;java.awt.image.BufferedImage)(fn:=&gt;T):T" title="Permalink" target="_top">
+      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@withIFrame[T](callback:()=&gt;String,extension:String,mimeType:String)(fn:String=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T" title="Permalink" target="_top">
+        <img src="../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#withMonitoredGif" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="withMonitoredGif[T](contentImage:()=&gt;Seq[java.awt.image.BufferedImage])(fn:=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T"></a>
+      <a id="withMonitoredGif[T](()⇒Seq[BufferedImage])(⇒T)(NotebookOutput):T"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">withMonitoredGif</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="contentImage">contentImage: () ⇒ <a href="../../../scala/package.html#Seq[+A]=Seq[A]" class="extmbr" name="scala.Seq">Seq</a>[<span class="extype" name="java.awt.image.BufferedImage">BufferedImage</span>]</span>)</span><span class="params">(<span name="fn">fn: ⇒ <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredGif.T">T</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="log">log: <span class="extype" name="com.simiacryptus.notebook.NotebookOutput">NotebookOutput</span></span>)</span><span class="result">: <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredGif.T">T</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@withMonitoredGif[T](contentImage:()=&gt;Seq[java.awt.image.BufferedImage])(fn:=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T" title="Permalink" target="_top">
+        <img src="../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#withMonitoredHtml" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="withMonitoredHtml[T](callback:()=&gt;String)(fn:=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T"></a>
+      <a id="withMonitoredHtml[T](()⇒String)(⇒T)(NotebookOutput):T"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">withMonitoredHtml</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="callback">callback: () ⇒ <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="params">(<span name="fn">fn: ⇒ <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredHtml.T">T</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="log">log: <span class="extype" name="com.simiacryptus.notebook.NotebookOutput">NotebookOutput</span></span>)</span><span class="result">: <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredHtml.T">T</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@withMonitoredHtml[T](callback:()=&gt;String)(fn:=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T" title="Permalink" target="_top">
+        <img src="../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="com.simiacryptus.sparkbook.NotebookRunner#withMonitoredJpg" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="withMonitoredJpg[T](contentImage:()=&gt;java.awt.image.BufferedImage)(fn:=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T"></a>
+      <a id="withMonitoredJpg[T](()⇒BufferedImage)(⇒T)(NotebookOutput):T"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">withMonitoredJpg</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="contentImage">contentImage: () ⇒ <span class="extype" name="java.awt.image.BufferedImage">BufferedImage</span></span>)</span><span class="params">(<span name="fn">fn: ⇒ <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredJpg.T">T</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="log">log: <span class="extype" name="com.simiacryptus.notebook.NotebookOutput">NotebookOutput</span></span>)</span><span class="result">: <span class="extype" name="com.simiacryptus.sparkbook.NotebookRunner.withMonitoredJpg.T">T</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../index.html#com.simiacryptus.sparkbook.NotebookRunner$@withMonitoredJpg[T](contentImage:()=&gt;java.awt.image.BufferedImage)(fn:=&gt;T)(implicitlog:com.simiacryptus.notebook.NotebookOutput):T" title="Permalink" target="_top">
         <img src="../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>

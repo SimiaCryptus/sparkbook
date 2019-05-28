@@ -75,14 +75,14 @@ object WorkerRunner extends Logging {
     }
   }
 
-  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
-    mapEval(rdd, fn)
-  }
-
   def rdd(implicit spark: SparkSession): RDD[Long] = {
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
     val rdd = spark.sparkContext.range(0, numberOfWorkers).coalesce(numberOfWorkers, true)
     rdd
+  }
+
+  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
+    mapEval(rdd, fn)
   }
 
   def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession): List[T] = {

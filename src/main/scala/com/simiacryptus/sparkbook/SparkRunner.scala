@@ -33,7 +33,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
   @transient protected lazy val envTuple = {
     try {
-      val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+      val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
       SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
       (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
     } catch {
@@ -153,8 +153,6 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
   def driverMemory: String = "7g"
 
-  def workerMemory: String = "6g"
-
   def workerCores: Int = 1
 
   def hiveRoot: Option[String] = None
@@ -166,11 +164,13 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     "spark.app.name" -> getClass.getCanonicalName
   )
 
+  def workerMemory: String = "6g"
+
   def javaProperties = Map(
     "s3bucket" -> s3bucket
   )
 
-  protected def s3bucket: String = envTuple._2
+  protected def s3bucket = envTuple._2
 
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {
     to.instanceType = from.machineType

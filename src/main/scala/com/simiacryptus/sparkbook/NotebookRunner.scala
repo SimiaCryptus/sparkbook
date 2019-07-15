@@ -95,6 +95,18 @@ object NotebookRunner {
     fileContent.close()
   }
 
+  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
+    if (null != images) {
+      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
+      val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
+      for (image <- images) {
+        writer.writeToSequence(image)
+      }
+      writer.close()
+      imageOutputStream.close()
+    }
+  }
+
   def withMonitoredGif[T](contentImage: () => Seq[BufferedImage])(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
@@ -117,18 +129,6 @@ object NotebookRunner {
         fileContent.close()
       }
       httpHandle_content.close()
-    }
-  }
-
-  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
-    if (null != images) {
-      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
-      val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
-      for (image <- images) {
-        writer.writeToSequence(image)
-      }
-      writer.close()
-      imageOutputStream.close()
     }
   }
 }

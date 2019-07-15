@@ -46,7 +46,7 @@ class DefaultEC2Runner extends EC2RunnerLike with Logging {
     jvmConfig.javaOpts += javaOpts
     val localControlPort = new Random().nextInt(1024) + 1024
     val node: EC2Util.EC2Node = tendrilNodeSettings.startNode(EC2Runner.ec2, localControlPort)
-    val control = Tendril.startRemoteJvm(node, jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, tendrilNodeSettings.bucket, workerEnvironment(node))
+    val control = Tendril.startRemoteJvm(node, jvmConfig, localControlPort, Tendril.defaultClasspathFilter _, EC2Runner.s3, workerEnvironment(node), tendrilNodeSettings.bucket)
     List(
       "ec2-settings." + EC2Util.REGION.toString + ".json",
       "user-settings.json"

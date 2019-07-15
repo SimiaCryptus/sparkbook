@@ -28,8 +28,8 @@ import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, Amaz
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import com.simiacryptus.aws._
 import com.simiacryptus.aws.exe.UserSettings
+import com.simiacryptus.aws.{EC2Util, _}
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
 import com.simiacryptus.util.ReportingUtil
@@ -64,7 +64,7 @@ object EC2Runner extends Logging {
   lazy val s3: AmazonS3 = AmazonS3ClientBuilder.standard.withRegion(EC2Util.REGION).build
 
   lazy val (envSettings, s3bucket, emailAddress) = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(ec2, iam, s3))
+    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(ec2, iam, s3))
     val load = UserSettings.load
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, load.emailAddress)
     (envSettings, envSettings.bucket, load.emailAddress)
@@ -134,7 +134,7 @@ object EC2Runner extends Logging {
 trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
   Tendril.getKryo.copy(this)
   @transient protected lazy val envTuple = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => AwsTendrilEnvSettings.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }

@@ -64,6 +64,19 @@ object NotebookRunner {
   def withMonitoredJpg[T](contentImage: () => BufferedImage)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+
+    def writeFile() = {
+      try {
+        val image = contentImage()
+        if (null != image) ImageIO.write(image, "jpeg", log.file(imageName_content))
+      } catch {
+        case e: Throwable =>
+      }
+    }
+
+    log.onWrite(new Runnable {
+      override def run(): Unit = writeFile()
+    })
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/jpeg", (r: OutputStream) => {
       try {
         val image = contentImage()
@@ -77,12 +90,7 @@ object NotebookRunner {
     try {
       fn
     } finally {
-      try {
-        val image = contentImage()
-        if (null != image) ImageIO.write(image, "jpeg", log.file(imageName_content))
-      } catch {
-        case e: Throwable =>
-      }
+      writeFile()
       httpHandle_content.close()
     }
   }
@@ -95,24 +103,18 @@ object NotebookRunner {
     fileContent.close()
   }
 
-  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
-    if (null != images) {
-      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
-      val writer = new GifSequenceWriter(imageOutputStream, images.head.getType, 100, true)
-      for (image <- images) {
-        writer.writeToSequence(image)
-      }
-      writer.close()
-      imageOutputStream.close()
-    }
-  }
-
   def withMonitoredGif[T](contentImage: () => Seq[BufferedImage])(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
       try {
-        toGif(outputStream, contentImage())
+        val images = contentImage()
+        if (null != images && !images.isEmpty) {
+          val fileContent: OutputStream = log.file(imageName_content)
+          toGif(fileContent, images)
+          fileContent.close()
+          toGif(outputStream, images)
+        }
       }
       catch {
         case e: IOException =>
@@ -129,6 +131,18 @@ object NotebookRunner {
         fileContent.close()
       }
       httpHandle_content.close()
+    }
+  }
+
+  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
+    if (null != images) {
+      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
+      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), 100, true)
+      for (image <- images) {
+        writer.writeToSequence(image)
+      }
+      writer.close()
+      imageOutputStream.close()
     }
   }
 }

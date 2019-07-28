@@ -153,8 +153,6 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
   def driverMemory: String = "7g"
 
-  def workerCores: Int = 1
-
   def hiveRoot: Option[String] = None
 
   def sparkProperties = Map(
@@ -163,6 +161,8 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     "spark.master" -> masterUrl,
     "spark.app.name" -> getClass.getCanonicalName
   )
+
+  def workerCores: Int = 1
 
   def workerMemory: String = "6g"
 

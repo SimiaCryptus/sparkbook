@@ -138,7 +138,8 @@ trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
     SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
-  val s3bucket: String = envTuple._2
+
+  def s3bucket: String = envTuple._2
 
   @transient def envSettings: AwsTendrilEnvSettings = envTuple._1
 

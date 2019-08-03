@@ -34,7 +34,10 @@ trait RepeatedInteractiveSetup[T <: AnyRef] extends SerializableFunction[Noteboo
     var result: Object = null
     var value: RepeatedInteractiveSetup[T] = getNext(log)
     while (null != value) {
-      result = log.subreport[T]("Cmd" + idx.incrementAndGet(), (s: NotebookOutput) => value.postConfigure(s))
+      result = ((fn: _root_.java.util.function.Function[_root_.com.simiacryptus.notebook.NotebookOutput, AnyRef], name: _root_.java.lang.String) => log.subreport(fn, name)) ((s: NotebookOutput) => {
+        value.postConfigure(s)
+        null
+      }, "Cmd" + idx.incrementAndGet())
       value = getNext(log)
     }
     result.asInstanceOf[T]

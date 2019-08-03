@@ -21,12 +21,12 @@ package com.simiacryptus.sparkbook
 
 import java.awt.image.BufferedImage
 import java.io.{File, IOException, OutputStream}
+import java.util.UUID
 
 import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
 import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
-import com.simiacryptus.util.Util
 import com.simiacryptus.util.io.GifSequenceWriter
 import javax.imageio.ImageIO
 import javax.imageio.stream.MemoryCacheImageOutputStream
@@ -150,8 +150,7 @@ object NotebookRunner {
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
   def get(): T = {
     try {
-      val dateStr = Util.dateStr("yyyyMMddHHmmss")
-      val log = new MarkdownNotebookOutput(new File("report/" + dateStr + "/" + name), http_port, false)
+      val log = new MarkdownNotebookOutput(new File(s"report/"), http_port, false, s"${name}_${UUID.randomUUID().toString}")
       try {
         val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")
@@ -170,7 +169,7 @@ trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunctio
 
   def http_port = 1080
 
-  def name: String = getClass.getSimpleName
+  def name: String = getClass.getSimpleName.stripSuffix("$")
 
   def autobrowse = true
 

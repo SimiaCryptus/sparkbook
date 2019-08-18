@@ -103,6 +103,18 @@ object NotebookRunner {
     fileContent.close()
   }
 
+  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
+    if (null != images) {
+      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
+      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), 100, true)
+      for (image <- images) {
+        writer.writeToSequence(image)
+      }
+      writer.close()
+      imageOutputStream.close()
+    }
+  }
+
   def withMonitoredGif[T](contentImage: () => Seq[BufferedImage])(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
@@ -133,24 +145,12 @@ object NotebookRunner {
       httpHandle_content.close()
     }
   }
-
-  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
-    if (null != images) {
-      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
-      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), 100, true)
-      for (image <- images) {
-        writer.writeToSequence(image)
-      }
-      writer.close()
-      imageOutputStream.close()
-    }
-  }
 }
 
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
   def get(): T = {
     try {
-      val log = new MarkdownNotebookOutput(new File(s"report/"), http_port, false, s"${name}_${UUID.randomUUID().toString}")
+      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${UUID.randomUUID().toString}"), http_port, false, s"${name}_${UUID.randomUUID().toString}")
       try {
         val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")

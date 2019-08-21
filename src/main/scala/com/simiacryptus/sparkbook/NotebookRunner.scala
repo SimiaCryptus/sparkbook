@@ -95,18 +95,20 @@ object NotebookRunner {
     }
   }
 
-  def gif(images: Seq[BufferedImage])(implicit log: NotebookOutput) = {
+
+
+  def gif(images: Seq[BufferedImage], delay :Int = 100)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val fileContent = log.file(imageName_content)
-    toGif(fileContent, images)
+    toGif(fileContent, images, delay)
     fileContent.close()
   }
 
-  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage]) = {
+  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage], delay: Int) = {
     if (null != images) {
       val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
-      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), 100, true)
+      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), delay, true)
       for (image <- images) {
         writer.writeToSequence(image)
       }
@@ -115,7 +117,7 @@ object NotebookRunner {
     }
   }
 
-  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage])(fn: => T)(implicit log: NotebookOutput) = {
+  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay :Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
@@ -123,9 +125,9 @@ object NotebookRunner {
         val images = contentImage()
         if (null != images && !images.isEmpty) {
           val fileContent: OutputStream = log.file(imageName_content)
-          toGif(fileContent, images)
+          toGif(fileContent, images, delay)
           fileContent.close()
-          toGif(outputStream, images)
+          toGif(outputStream, images, delay)
         }
       }
       catch {
@@ -139,7 +141,7 @@ object NotebookRunner {
       val images = contentImage()
       if (null != images) {
         val fileContent = log.file(imageName_content)
-        toGif(fileContent, images)
+        toGif(fileContent, images, delay)
         fileContent.close()
       }
       httpHandle_content.close()
@@ -150,7 +152,7 @@ object NotebookRunner {
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
   def get(): T = {
     try {
-      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${UUID.randomUUID().toString}"), http_port, false, s"${name}_${UUID.randomUUID().toString}")
+      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${UUID.randomUUID().toString}/"), http_port, false, s"${name}_${UUID.randomUUID().toString}")
       try {
         val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")

@@ -39,7 +39,7 @@ object NotebookRunner {
 
   def withIFrame[T](callback: () => String, extension: String, mimeType: String)(fn: String => T)(implicit log: NotebookOutput) = {
     val fileName = java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong) + "." + extension
-    log.p(s"""<iframe src="etc/${fileName}" style="width:100%; height:400px" ></iframe>""")
+    log.p(s"""<iframe src="etc/${fileName}" style="margin: 0px; resize: both; overflow: auto; width:100%; height:400px" ></iframe>""")
     val httpHandle_content = log.getHttpd.addGET("etc/" + fileName, mimeType, (r: OutputStream) => {
       try {
         IOUtils.write(callback(), r, "UTF-8")
@@ -96,8 +96,7 @@ object NotebookRunner {
   }
 
 
-
-  def gif(images: Seq[BufferedImage], delay :Int = 100)(implicit log: NotebookOutput) = {
+  def gif(images: Seq[BufferedImage], delay: Int = 100)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val fileContent = log.file(imageName_content)
@@ -117,7 +116,7 @@ object NotebookRunner {
     }
   }
 
-  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay :Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
+  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
@@ -152,7 +151,8 @@ object NotebookRunner {
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
   def get(): T = {
     try {
-      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${UUID.randomUUID().toString}/"), http_port, false, s"${name}_${UUID.randomUUID().toString}")
+      val uuid = UUID.randomUUID()
+      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${uuid.toString}/"), http_port, false, s"${name}_${uuid.toString}", uuid)
       try {
         val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")

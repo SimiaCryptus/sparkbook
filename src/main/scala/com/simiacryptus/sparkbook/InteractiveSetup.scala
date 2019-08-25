@@ -29,6 +29,8 @@ import com.simiacryptus.sparkbook.util.Java8Util._
 
 trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
   override def apply(log: NotebookOutput): T = {
+    log.h1(className)
+    log.p(description)
     val value = new JsonQuery[InteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
       new ObjectMapper()
         .enable(SerializationFeature.INDENT_OUTPUT)
@@ -39,6 +41,10 @@ trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
     }).setValue(this).print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
     Option(value).getOrElse(this).postConfigure(log)
   }
+
+  def className: String = getClass.getSimpleName.stripSuffix("$")
+
+  def description: String = ""
 
   def inputTimeoutSeconds = 60
 

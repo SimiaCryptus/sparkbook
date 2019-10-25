@@ -105,37 +105,6 @@ object NotebookRunner {
     fileContent.close()
   }
 
-  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage], delay: Int, maxWidth: Int) = {
-    if (null != images && 0 < images.length) {
-      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
-      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), delay, true)
-      val width = images(0).getWidth
-      for (image <- images) {
-        if (width < maxWidth) {
-          writer.writeToSequence(image)
-        } else {
-          val height = (maxWidth * (image.getHeight.toDouble / image.getWidth.toDouble)).toInt
-          writer.writeToSequence(resize(image, maxWidth, height))
-        }
-      }
-      writer.close()
-      imageOutputStream.close()
-    }
-  }
-
-  def resize(source: BufferedImage, width: Int, height: Int): BufferedImage = {
-    val image: BufferedImage = new BufferedImage(width, height, source.getType)
-    val graphics: Graphics2D = image.getGraphics.asInstanceOf[Graphics2D]
-    val hints = new java.util.HashMap[AnyRef, AnyRef]
-    hints.put(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-    hints.put(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
-    hints.put(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY)
-    hints.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
-    graphics.setRenderingHints(hints)
-    graphics.drawImage(source, 0, 0, width, height, null)
-    image
-  }
-
   def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
@@ -165,6 +134,37 @@ object NotebookRunner {
       }
       httpHandle_content.close()
     }
+  }
+
+  def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage], delay: Int, maxWidth: Int) = {
+    if (null != images && 0 < images.length) {
+      val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
+      val writer = new GifSequenceWriter(imageOutputStream, images.headOption.map(_.getType).getOrElse(BufferedImage.TYPE_INT_RGB), delay, true)
+      val width = images(0).getWidth
+      for (image <- images) {
+        if (width < maxWidth) {
+          writer.writeToSequence(image)
+        } else {
+          val height = (maxWidth * (image.getHeight.toDouble / image.getWidth.toDouble)).toInt
+          writer.writeToSequence(resize(image, maxWidth, height))
+        }
+      }
+      writer.close()
+      imageOutputStream.close()
+    }
+  }
+
+  def resize(source: BufferedImage, width: Int, height: Int): BufferedImage = {
+    val image: BufferedImage = new BufferedImage(width, height, source.getType)
+    val graphics: Graphics2D = image.getGraphics.asInstanceOf[Graphics2D]
+    val hints = new java.util.HashMap[AnyRef, AnyRef]
+    hints.put(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+    hints.put(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
+    hints.put(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY)
+    hints.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+    graphics.setRenderingHints(hints)
+    graphics.drawImage(source, 0, 0, width, height, null)
+    image
   }
 
 }

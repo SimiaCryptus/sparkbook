@@ -1,9 +1,9 @@
+../.gitignore
+*.iml
+*.iml
 *.json
-*.pem
 logs/
+*.pem
 report/
 target/
-*.iml
-*.iml
-../.gitignore
-../.gitignore
+target/

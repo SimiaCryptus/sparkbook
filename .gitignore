@@ -6,5 +6,6 @@
 logs/
 *.pem
 report/
+sparkbook.iml
 target/
 target/

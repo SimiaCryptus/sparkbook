@@ -27,7 +27,7 @@
         <groupId>com.simiacryptus</groupId>
         <artifactId>scala-parent</artifactId>
         <version>1.8.1-SNAPSHOT</version>
-        <relativePath>../scala-parent</relativePath>
+        <relativePath>../../mvn-parents/scala-parent</relativePath>
     </parent>
 
     <groupId>com.simiacryptus</groupId>

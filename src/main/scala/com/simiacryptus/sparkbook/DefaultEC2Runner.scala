@@ -24,6 +24,7 @@ import java.util.Random
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{AwsTendrilNodeSettings, EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 
@@ -36,7 +37,7 @@ class DefaultEC2Runner extends EC2RunnerLike with Logging {
   (
     nodeSettings: EC2NodeSettings,
     javaOpts: String = "",
-    workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
+    workerEnvironment: EC2Util.EC2Node => RefHashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl) = {
     val tendrilNodeSettings: AwsTendrilNodeSettings = new AwsTendrilNodeSettings(EC2Runner.envSettings)
     tendrilNodeSettings.instanceType = nodeSettings.machineType

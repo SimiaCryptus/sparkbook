@@ -20,13 +20,13 @@
 package com.simiacryptus.sparkbook.repl
 
 import java.lang.reflect.InvocationTargetException
-import java.util
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import com.simiacryptus.lang.SerializableFunction
 import com.simiacryptus.notebook.StringQuery.SimpleStringQuery
 import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput, TableOutput}
+import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
@@ -53,7 +53,7 @@ object SparkRepl extends SparkSessionProvider {
       })
     })
     frame.limit(100).collect().foreach(row => {
-      val rowData: util.HashMap[CharSequence, AnyRef] = new util.HashMap[CharSequence, AnyRef]()
+      val rowData: RefHashMap[CharSequence, AnyRef] = new RefHashMap[CharSequence, AnyRef]()
       row.schema.fields.zipWithIndex.foreach(tuple => {
         val (field, fieldIndex) = tuple
         val value = row.get(fieldIndex)

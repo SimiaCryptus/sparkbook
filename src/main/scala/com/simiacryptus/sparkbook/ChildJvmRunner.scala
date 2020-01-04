@@ -26,6 +26,7 @@ import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInsta
 import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
+import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 
@@ -34,7 +35,7 @@ import scala.util.Random
 
 trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
   override lazy val runner: EC2RunnerLike = new EC2RunnerLike with Logging {
-    override def start(nodeSettings: EC2NodeSettings, subJavaOpts: String, workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
+    override def start(nodeSettings: EC2NodeSettings, subJavaOpts: String, workerEnvironment: EC2Util.EC2Node => RefHashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
       val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
 
         override def getStatus: Instance = {
@@ -47,7 +48,7 @@ trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
 
         override def close(): Unit = {}
       }
-      val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
+      val env = new RefHashMap[String, String](ChildJvmRunner.this.environment)
       env.putAll(workerEnvironment.apply(node))
       val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
       (node, control)

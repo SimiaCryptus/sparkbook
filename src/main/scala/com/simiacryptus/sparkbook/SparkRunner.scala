@@ -25,6 +25,7 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.aws.{AwsTendrilEnvSettings, AwsTendrilNodeSettings, EC2Util, SESUtil}
 import com.simiacryptus.lang.SerializableSupplier
+import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
 import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
@@ -76,7 +77,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
         masterRunner.copy(hostname = node.getStatus.getPublicDnsName)
       },
       workerEnvironment = node => {
-        val map = new java.util.HashMap[String, String]()
+        val map = new RefHashMap[String, String]()
         map.put("SPARK_WORKER_MEMORY", workerMemory)
         map.put("SPARK_LOCAL_IP", node.getStatus.getPrivateIpAddress)
         map.put("SPARK_PUBLIC_DNS", node.getStatus.getPublicDnsName)
@@ -112,7 +113,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
           ))
         },
         workerEnvironment = (node: EC2Util.EC2Node) => {
-          val map = new java.util.HashMap[String, String]()
+          val map = new RefHashMap[String, String]()
           map.put("SPARK_LOCAL_IP", node.getStatus.getPrivateIpAddress)
           map.put("SPARK_PUBLIC_DNS", node.getStatus.getPublicDnsName)
           map

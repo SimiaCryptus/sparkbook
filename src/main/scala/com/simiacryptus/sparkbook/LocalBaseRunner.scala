@@ -25,6 +25,7 @@ import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
 import com.simiacryptus.lang.SerializableCallable
+import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 
 class LocalBaseRunner extends EC2RunnerLike {
@@ -33,7 +34,7 @@ class LocalBaseRunner extends EC2RunnerLike {
   (
     nodeSettings: EC2NodeSettings,
     javaopts: String,
-    workerEnvironment: EC2Util.EC2Node => java.util.HashMap[String, String]
+    workerEnvironment: EC2Util.EC2Node => RefHashMap[String, String]
   ): (EC2Util.EC2Node, TendrilControl) = {
     val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
       /**

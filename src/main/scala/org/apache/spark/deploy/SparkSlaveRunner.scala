@@ -22,13 +22,13 @@ package org.apache.spark.deploy
 import java.io.{File, FileOutputStream}
 import java.net.InetAddress
 import java.nio.charset.Charset
-import java.util
 import java.util.zip.ZipFile
 
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.GetObjectRequest
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{ClasspathUtil, EC2Util}
+import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook._
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{LocalAppSettings, Logging}
@@ -85,7 +85,7 @@ case class SparkSlaveRunner
     runner.run[Object](
       nodeSettings = nodeSettings,
       command = _ => this,
-      workerEnvironment = (node: EC2Util.EC2Node) => new util.HashMap[String, String](Map(
+      workerEnvironment = (node: EC2Util.EC2Node) => new RefHashMap[String, String](Map(
         "SPARK_HOME" -> ".",
         "SPARK_LOCAL_IP" -> node.getStatus.getPrivateIpAddress,
         "SPARK_PUBLIC_DNS" -> node.getStatus.getPublicDnsName,

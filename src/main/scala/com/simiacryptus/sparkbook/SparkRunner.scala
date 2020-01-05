@@ -163,9 +163,9 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     "spark.app.name" -> getClass.getCanonicalName
   )
 
-  def workerMemory: String = "6g"
-
   def workerCores: Int = 1
+
+  def workerMemory: String = "6g"
 
   def javaProperties = Map(
     "s3bucket" -> s3bucket

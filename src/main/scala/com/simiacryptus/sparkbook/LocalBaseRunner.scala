@@ -62,7 +62,7 @@ class LocalBaseRunner extends EC2RunnerLike {
 
       override def exit(): Unit = {}
 
-      override def time(): Long = System.currentTimeMillis()
+      override def time(): Long = com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis()
 
       override def run[T](task: SerializableCallable[T]): T = task.call()
     }))

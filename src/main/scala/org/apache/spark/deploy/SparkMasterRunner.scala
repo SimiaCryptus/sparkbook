@@ -66,10 +66,10 @@ case class SparkMasterRunner
       logger.info("this: " + this)
       val master = s"spark://$hostname:$controlPort"
       logger.info("Spark master = " + master)
-      System.setProperty("spark.master", master)
-      System.setProperty("spark.app.name", "default")
-      System.setProperty("spark.submit.deployMode", "client")
-      System.setProperty("spark.executor.cores", "1")
+      com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.master", master)
+      com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.app.name", "default")
+      com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.submit.deployMode", "client")
+      com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.executor.cores", "1")
       FileUtils.write(new File(s"conf${File.separator}spark-defaults.conf"), sparkProperties.map(e => "%s\t%s".format(e._1, e._2)).mkString("\n"), Charset.forName("UTF-8"))
       org.apache.spark.deploy.master.Master.main(Array(
         "--host", hostname,
@@ -82,7 +82,7 @@ case class SparkMasterRunner
       case e: Throwable => logger.error("Error running spark master", e)
     } finally {
       logger.warn("Exiting spark master", new RuntimeException("Stack Trace"))
-      System.exit(0)
+      com.simiacryptus.ref.wrappers.RefSystem.exit(0)
     }
     null
   }

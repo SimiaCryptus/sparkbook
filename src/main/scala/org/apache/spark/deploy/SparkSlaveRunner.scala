@@ -99,7 +99,7 @@ case class SparkSlaveRunner
 
   override def get(): Object = {
     try {
-      //if (null != javaConfig) javaConfig.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
+      //if (null != javaConfig) javaConfig.filter(_._1 != null).filter(_._2 != null).foreach(e => com.simiacryptus.ref.wrappers.RefSystem.setProperty(e._1, e._2))
       for (workerIndex <- 0 until numberOfWorkersPerNode) {
         val workingDir = new File(s"spark_workers${File.separator}%d".format(workerIndex))
         workingDir.mkdirs()
@@ -112,7 +112,7 @@ case class SparkSlaveRunner
           "spark.shuffle.service.enabled" -> "false"
         )).map(e => "%s\t%s".format(e._1, e._2 //.replaceAll(":", "\\\\:")
         )).mkString("\n"), Charset.forName("UTF-8"))
-        val tmpDir = System.getProperty("java.io.tmpdir").stripSuffix(File.separator) + File.separator + workerIndex + File.separator
+        val tmpDir = com.simiacryptus.ref.wrappers.RefSystem.getProperty("java.io.tmpdir").stripSuffix(File.separator) + File.separator + workerIndex + File.separator
         new File(tmpDir).mkdirs()
         SingleSlaveRunner(
           args = Array(
@@ -139,7 +139,7 @@ case class SparkSlaveRunner
       case e: Throwable => logger.error("Error running spark slave", e)
     } finally {
       logger.warn("Exiting spark slave", new RuntimeException("Stack Trace"))
-      System.exit(0)
+      com.simiacryptus.ref.wrappers.RefSystem.exit(0)
     }
     null
   }
@@ -165,7 +165,7 @@ case class SparkSlaveRunner
     val scalaLauncherJars = new File(workingDir, "launcher/target/scala-2.11")
     scalaLauncherJars.mkdirs()
 
-    val localClasspath = System.getProperty("java.class.path")
+    val localClasspath = com.simiacryptus.ref.wrappers.RefSystem.getProperty("java.class.path")
     logger.info("Java Local Classpath: " + localClasspath)
     localClasspath.split(File.pathSeparator).filter(s => !s.contains("idea_rt")
       && !s.contains(File.separator + "jre" + File.separator)
@@ -201,8 +201,8 @@ case class SingleSlaveRunner
   override def maxHeap: Option[String] = Option("1g")
 
   override def get(): Object = {
-    javaProperties.filter(_._1 != null).filter(_._2 != null).foreach(e => System.setProperty(e._1, e._2))
-    System.setProperty("spark.executor.extraJavaOptions", javaProperties.map(e => s"-D${e._1}=${e._2}").mkString(" "))
+    javaProperties.filter(_._1 != null).filter(_._2 != null).foreach(e => com.simiacryptus.ref.wrappers.RefSystem.setProperty(e._1, e._2))
+    com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.executor.extraJavaOptions", javaProperties.map(e => s"-D${e._1}=${e._2}").mkString(" "))
     fn(args)
     null
   }

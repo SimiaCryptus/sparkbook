@@ -65,7 +65,7 @@ abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] wi
           ScalaJson.toJson(LocalAppSettings.read())
         })
         LocalAppSettings.read().get("worker.index").foreach(idx => {
-          System.setProperty("CUDA_DEVICES", idx)
+          com.simiacryptus.ref.wrappers.RefSystem.setProperty("CUDA_DEVICES", idx)
         })
       })(log, spark = spark)
       Thread.sleep(30000)

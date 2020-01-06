@@ -26,9 +26,9 @@ import org.apache.spark.sql.SparkSession
 trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
 
   def main(args: Array[String]): Unit = {
-    System.setProperty("spark.master", spark_master)
-    System.setProperty("spark.driver.memory", "32g")
-    System.setProperty("spark.app.name", "local")
+    com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.master", spark_master)
+    com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.driver.memory", "32g")
+    com.simiacryptus.ref.wrappers.RefSystem.setProperty("spark.app.name", "local")
     SysOutInterceptor.INSTANCE.init
     SparkSession.setActiveSession(SparkSession.builder()
       .config("fs.s3a.aws.credentials.provider", classOf[ProfileCredentialsProvider].getCanonicalName)
@@ -37,7 +37,7 @@ trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
       get()
     } finally {
       logger.warn("Exiting node worker", new RuntimeException("Stack Trace"))
-      System.exit(0)
+      com.simiacryptus.ref.wrappers.RefSystem.exit(0)
     }
 
   }

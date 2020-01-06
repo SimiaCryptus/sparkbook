@@ -20,6 +20,7 @@
 package com.simiacryptus.sparkbook
 
 import java.io.File
+import java.util
 
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
@@ -48,7 +49,7 @@ trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
 
         override def close(): Unit = {}
       }
-      val env = new RefHashMap[String, String](ChildJvmRunner.this.environment)
+      val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
       env.putAll(workerEnvironment.apply(node))
       val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
       (node, control)

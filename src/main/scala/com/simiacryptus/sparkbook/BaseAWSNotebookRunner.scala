@@ -43,7 +43,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
 
   def get(): T = {
     try {
-      val startTime = System.currentTimeMillis
+      val startTime = com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis
       val port = http_port
       val browse = autobrowse
       new NotebookRunner[T]() {
@@ -74,7 +74,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
     finally {
       if (shutdownOnQuit) {
         logger.warn("Finished notebook", new RuntimeException("Stack Trace"))
-        System.exit(0)
+        com.simiacryptus.ref.wrappers.RefSystem.exit(0)
       }
     }
   }
@@ -88,7 +88,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
   private def sendCompleteEmail(testName: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
       val reportFile = new File(workingDir, testName + ".html")
-      logger.info(String.format("Emailing report at %s to %s", reportFile, emailAddress))
+      logger.info(com.simiacryptus.ref.wrappers.RefString.format("Emailing report at %s to %s", reportFile, emailAddress))
       var html: String = null
       try {
         html = FileUtils.readFileToString(reportFile, "UTF-8")
@@ -109,21 +109,21 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
         val imageFile = new File(workingDir, stringLiteralText).getAbsoluteFile
         val url = uploads.get(imageFile)
         if (null == url) {
-          logger.info(String.format("No File Found for %s, reverting to %s", imageFile, stringLiteralText))
+          logger.info(com.simiacryptus.ref.wrappers.RefString.format("No File Found for %s, reverting to %s", imageFile, stringLiteralText))
           replacedHtml += "\"" + stringLiteralText + "\""
         }
         else {
-          logger.info(String.format("Rewriting %s to %s at %s", stringLiteralText, imageFile, url))
+          logger.info(com.simiacryptus.ref.wrappers.RefString.format("Rewriting %s to %s at %s", stringLiteralText, imageFile, url))
           replacedHtml += "\"" + url + "\""
         }
         start = matcher.end
       }
-      val durationMin = (System.currentTimeMillis - startTime) / (1000.0 * 60)
+      val durationMin = (com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis - startTime) / (1000.0 * 60)
       val subject = f"$testName Completed in ${durationMin}%.3fmin"
       val zip = new File(workingDir, testName + ".zip")
       val pdf = new File(workingDir, testName + ".pdf")
       val append = "<hr/>" + List(zip, pdf, new File(workingDir, testName + ".html"))
-        .map((file: File) => String.format("<p><a href=\"%s\">%s</a></p>", uploads.get(file.getAbsoluteFile), file.getName)).reduce((a: String, b: String) => a + b)
+        .map((file: File) => com.simiacryptus.ref.wrappers.RefString.format("<p><a href=\"%s\">%s</a></p>", uploads.get(file.getAbsoluteFile), file.getName)).reduce((a: String, b: String) => a + b)
       val endTag = "</body>"
       if (replacedHtml.contains(endTag)) replacedHtml.replace(endTag, append + endTag)
       else replacedHtml += append

@@ -133,7 +133,7 @@ case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput,
   override def autobrowse = false
 
   override def apply(log: NotebookOutput): T = {
-    logger.info(String.format("Starting report %s at %s", childName, parent))
+    logger.info(com.simiacryptus.ref.wrappers.RefString.format("Starting report %s at %s", childName, parent))
     log.setArchiveHome(parent)
     log.setName(childName)
     val t = fn.apply(log)

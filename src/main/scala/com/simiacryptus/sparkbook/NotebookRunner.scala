@@ -63,8 +63,8 @@ object NotebookRunner {
   }
 
   def withMonitoredJpg[T](contentImage: () => BufferedImage)(fn: => T)(implicit log: NotebookOutput) = {
-    val imageName_content = String.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
-    log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
 
     def writeFile() = {
       try {
@@ -98,8 +98,8 @@ object NotebookRunner {
 
 
   def gif(images: Seq[BufferedImage], delay: Int = 100)(implicit log: NotebookOutput) = {
-    val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
-    log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val fileContent = log.file(imageName_content)
     toGif(fileContent, images, delay, 1200)
     fileContent.close()
@@ -137,8 +137,8 @@ object NotebookRunner {
   }
 
   def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
-    val imageName_content = String.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
-    log.p(String.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
       try {
         val images = contentImage()

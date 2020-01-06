@@ -34,13 +34,13 @@ trait SparkSessionProvider extends Logging {
   })
 
   def await(duration: FiniteDuration)(test: => Boolean): Unit = {
-    def epoch = System.currentTimeMillis()
+    def epoch = com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis()
 
     val timeoutEpoch = epoch + duration.toMillis
     while (test && epoch < timeoutEpoch) Thread.sleep(1000)
   }
 
-  def workerMemory: String = Option(System.getenv("SPARK_WORKER_MEMORY")).getOrElse("60g")
+  def workerMemory: String = Option(com.simiacryptus.ref.wrappers.RefSystem.getenv("SPARK_WORKER_MEMORY")).getOrElse("60g")
 
   def hiveRoot: Option[String] = Option(s3bucket).map(bucket => s"s3a://$bucket/data/")
 

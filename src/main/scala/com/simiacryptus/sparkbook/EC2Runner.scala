@@ -72,18 +72,18 @@ object EC2Runner extends Logging {
 
   def join(node: EC2Util.EC2Node) = {
     import com.simiacryptus.sparkbook.util.Java8Util._
-    var currentCheck: Try[(String, Long)] = Success("running" -> System.currentTimeMillis())
+    var currentCheck: Try[(String, Long)] = Success("running" -> com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis())
     val scheduledExecutorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build)
     val scheduledTask = scheduledExecutorService.scheduleAtFixedRate(() => {
       currentCheck = Try {
-        (node.getStatus.getState.getName, System.currentTimeMillis())
+        (node.getStatus.getState.getName, com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis())
       }
     }: Unit, 15, 15, TimeUnit.SECONDS)
     try {
       import scala.concurrent.duration._
       def isRunning = {
         val (status, time) = currentCheck.get
-        "running" == status && ((System.currentTimeMillis() - time) milliseconds) < (60 seconds)
+        "running" == status && ((com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis() - time) milliseconds) < (60 seconds)
       }
 
       while (isRunning) Thread.sleep(30 * 1000)
@@ -97,7 +97,7 @@ object EC2Runner extends Logging {
 
   def browse(node: EC2Util.EC2Node, port: Int = 1080): Unit = {
     try
-      ReportingUtil.browse(new URI(String.format("http://%s:" + port + "/", node.getStatus.getPublicDnsName)))
+      ReportingUtil.browse(new URI(com.simiacryptus.ref.wrappers.RefString.format("http://%s:" + port + "/", node.getStatus.getPublicDnsName)))
     catch {
       case e: Throwable =>
         logger.info("Error opening browser", e)

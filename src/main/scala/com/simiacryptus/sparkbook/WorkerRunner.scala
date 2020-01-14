@@ -75,6 +75,11 @@ object WorkerRunner extends Logging {
     }
   }
 
+  def repartition[T: ClassTag](rdd: RDD[T])(implicit spark: SparkSession): RDD[T] = {
+    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
+    rdd.repartition(numberOfWorkers).cache()
+  }
+
   def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
     mapEval(rdd, fn)
   }
@@ -113,11 +118,6 @@ object WorkerRunner extends Logging {
         log.link(new File(root, id + ".pdf"), "pdf"))
     }
     results.map(_._1)
-  }
-
-  def repartition[T: ClassTag](rdd: RDD[T])(implicit spark: SparkSession): RDD[T] = {
-    val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
-    rdd.repartition(numberOfWorkers).cache()
   }
 }
 

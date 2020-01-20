@@ -39,7 +39,6 @@ trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
       logger.warn("Exiting node worker", new RuntimeException("Stack Trace"))
       com.simiacryptus.ref.wrappers.RefSystem.exit(0)
     }
-
   }
 
   def spark_master = "local[16]"

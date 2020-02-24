@@ -8,4 +8,5 @@ logs/
 report/
 sparkbook.iml
 target/
-target/
+*.hprof
+

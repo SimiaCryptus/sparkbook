@@ -55,10 +55,10 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
           log.setArchiveHome(s3home)
           log.onComplete(() => {
             val uploads = S3Util.upload(log);
-            sendCompleteEmail(log.getName.toString, log.getRoot, uploads, startTime)
+            sendCompleteEmail(log.getId, log.getRoot, uploads, startTime)
           })
           try
-            sendStartEmail(log.getName.toString, this)
+            sendStartEmail(log.getId, this)
           catch {
             case e@(_: IOException | _: URISyntaxException) =>
               throw new RuntimeException(e)
@@ -85,9 +85,9 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
 
   def http_port = 1080
 
-  private def sendCompleteEmail(testName: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
+  private def sendCompleteEmail(testId: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
-      val reportFile = new File(workingDir, testName + ".html")
+      val reportFile = new File(workingDir, testId + ".html")
       logger.info(com.simiacryptus.ref.wrappers.RefString.format("Emailing report at %s to %s", reportFile, emailAddress))
       var html: String = null
       try {
@@ -119,13 +119,32 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
         start = matcher.end
       }
       val durationMin = (com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis - startTime) / (1000.0 * 60)
-      val subject = f"$testName Completed in ${durationMin}%.3fmin"
-      val zip = new File(workingDir, testName + ".zip")
-      val pdf = new File(workingDir, testName + ".pdf")
-      val append = "<hr/>" + List(zip, pdf, new File(workingDir, testName + ".html"))
-        .map((file: File) => com.simiacryptus.ref.wrappers.RefString.format("<p><a href=\"%s\">%s</a></p>", uploads.get(file.getAbsoluteFile), file.getName)).reduce((a: String, b: String) => a + b)
+      val subject = f"$className Completed in ${durationMin}%.3fmin"
+      val append = "<hr/>" + List(
+        new File(workingDir, testId + ".zip"),
+        new File(workingDir, testId + ".pdf"),
+        new File(workingDir, testId + ".html")
+      ).map((file: File) => {
+        val absoluteFile = file.getAbsoluteFile
+        val url = uploads.get(absoluteFile)
+        if (null == url) {
+          logger.info("Not found: " + absoluteFile)
+          import scala.collection.JavaConverters._
+          uploads.asScala.foreach(t => logger.info("Upload: " + t._1 + " -> " + t._2))
+          <p>
+            {file.getName}
+          </p>.toString()
+        } else {
+          <p>
+            <a href={url.toString}>
+              {file.getName}
+            </a>
+          </p>.toString()
+        }
+      })
+        .reduce((a: String, b: String) => a + b)
       val endTag = "</body>"
-      if (replacedHtml.contains(endTag)) replacedHtml.replace(endTag, append + endTag)
+      if (replacedHtml.contains(endTag)) replacedHtml = replacedHtml.replace(endTag, append + endTag)
       else replacedHtml += append
       val attachments: Array[File] = Array.empty
       try {
@@ -138,7 +157,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
 
   @throws[IOException]
   @throws[URISyntaxException]
-  private def sendStartEmail(testName: String, fn: SerializableFunction[NotebookOutput, _]): Unit = {
+  private def sendStartEmail(testId: String, fn: SerializableFunction[NotebookOutput, _]): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
       val publicHostname = Try {
         IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/public-hostname"), "UTF-8")
@@ -148,15 +167,40 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
       }.getOrElse("??")
       val functionJson = new ObjectMapper().enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL).enable(SerializationFeature.INDENT_OUTPUT).writer.writeValueAsString(fn)
       //https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=i-00651bdfd6121e199
-      val html = "<html><body>" + "<p><a href=\"http://" + publicHostname + ":1080/\">The tiledTexturePaintingPhase can be monitored at " + publicHostname + "</a></p><hr/>" + "<p><a href=\"https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=" + instanceId + "\">View instance " + instanceId + " on AWS Console</a></p><hr/>" + "<p>Script Definition:" + "<pre>" + functionJson + "</pre></p>" + "</body></html>"
+      val html = <html>
+        <body>
+          <h1>
+            {testId}
+          </h1>
+          <p>
+            <a href={"http://" + publicHostname + ":1080/"}>The tiledTexturePaintingPhase can be monitored at
+              {publicHostname}
+            </a>
+          </p>
+          <hr/>
+          <p>
+            <a href={"https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#Instances:search=" + instanceId}>View instance
+              {instanceId}
+              on AWS Console</a>
+          </p>
+          <hr/>
+          <p>Script Definition:
+            <pre>
+              {functionJson}
+            </pre>
+          </p>
+        </body>
+      </html>
       val txtBody = "Process Started at " + new Date
-      val subject = testName + " Starting"
+      val subject = className + " Starting"
       try {
-        SESUtil.send(AmazonSimpleEmailServiceClientBuilder.defaultClient, subject, emailAddress, txtBody, html)
+        SESUtil.send(AmazonSimpleEmailServiceClientBuilder.defaultClient, subject, emailAddress, txtBody, html.toString())
       } catch {
         case e: Throwable => logger.warn("Error sending email to " + emailAddress, e)
       }
     }
   }
+
+  def className: String
 
 }

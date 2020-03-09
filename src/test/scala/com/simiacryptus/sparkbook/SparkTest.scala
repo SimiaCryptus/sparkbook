@@ -67,9 +67,11 @@ abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] wi
         LocalAppSettings.read().get("worker.index").foreach(idx => {
           com.simiacryptus.ref.wrappers.RefSystem.setProperty("CUDA_DEVICES", idx)
         })
-      })(log, spark = spark)
+      }, className)(log, spark = spark)
       Thread.sleep(30000)
     }
     null
   }
+
+  def className: String = getClass.getName
 }

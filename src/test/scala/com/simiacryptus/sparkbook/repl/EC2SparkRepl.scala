@@ -30,6 +30,8 @@ object EC2SparkRepl extends SparkRepl with EC2SparkRunner[Object] with AWSNotebo
   override val driverMemory: String = "8g"
   override val workerMemory: String = "8g"
 
+  override def className: String = getClass.getName
+
   override def hiveRoot: Option[String] = super.hiveRoot
 
   override def masterSettings: EC2NodeSettings = EC2NodeSettings.T2_L

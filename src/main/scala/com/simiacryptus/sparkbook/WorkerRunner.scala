@@ -37,22 +37,22 @@ import scala.util.Random
 
 object WorkerRunner extends Logging {
 
-  def apply[T](parentArchive: URI, fn: (NotebookOutput) => T)(implicit spark: SparkSession): T = {
+  def apply[T](parentArchive: URI, fn: (NotebookOutput) => T, className: String)(implicit spark: SparkSession): T = {
     val childName = UUID.randomUUID().toString
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
     val r = new AtomicReference[T]()
     WorkerRunner[Object](parentArchive, (x: NotebookOutput) => {
       r.set(fn(x))
       null
-    }, childName).get()
+    }, childName, className).get()
     r.get()
   }
 
-  def distribute(fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession) = {
-    map(rdd, fn)
+  def distribute(fn: (NotebookOutput, Long) => Unit, className: String)(implicit log: NotebookOutput, spark: SparkSession) = {
+    map(rdd, fn, className)
   }
 
-  def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit)(implicit log: NotebookOutput, spark: SparkSession) = {
+  def map(rdd: RDD[Long], fn: (NotebookOutput, Long) => Unit, className: String)(implicit log: NotebookOutput, spark: SparkSession) = {
     val parentArchive = log.getArchiveHome
     val results: List[String] = repartition(rdd).map(i => {
       val childName = UUID.randomUUID().toString
@@ -60,7 +60,7 @@ object WorkerRunner extends Logging {
         WorkerRunner(parentArchive, (x: NotebookOutput) => {
           fn(x, i)
           null
-        }, childName).get()
+        }, childName, className).get()
       } catch {
         case e: Throwable => logger.warn("Error in worker", e)
       }
@@ -80,14 +80,14 @@ object WorkerRunner extends Logging {
     rdd.repartition(numberOfWorkers).cache()
   }
 
-  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
-    mapEval(rdd, fn)
-  }
-
   def rdd(implicit spark: SparkSession): RDD[Long] = {
     val numberOfWorkers = spark.sparkContext.getExecutorMemoryStatus.size
     val rdd = spark.sparkContext.range(0, numberOfWorkers).coalesce(numberOfWorkers, true)
     rdd
+  }
+
+  def distributeEval[T: ClassTag](fn: (Long) => T)(implicit spark: SparkSession) = {
+    mapEval(rdd, fn)
   }
 
   def mapEval[T: ClassTag](rdd: RDD[Long], fn: (Long) => T)(implicit spark: SparkSession): List[T] = {
@@ -96,14 +96,19 @@ object WorkerRunner extends Logging {
     }).collect().toList
   }
 
-  def mapPartitions[T: ClassTag, U: ClassTag](rdd: RDD[T], fn: (NotebookOutput, Iterator[T]) => Iterator[U])(implicit log: NotebookOutput, spark: SparkSession) = {
+  def mapPartitions[T: ClassTag, U: ClassTag]
+  (
+    rdd: RDD[T],
+    fn: (NotebookOutput, Iterator[T]) => Iterator[U],
+    className: String
+  )(implicit log: NotebookOutput, spark: SparkSession) = {
     val parentArchive = log.getArchiveHome
     val results = repartition(rdd).mapPartitions(i => {
       try {
         val childName = UUID.randomUUID().toString
         WorkerRunner[Iterator[U]](parentArchive, (x: NotebookOutput) => {
           fn(x, i)
-        }, childName).get().map(x => x -> childName)
+        }, childName, className).get().map(x => x -> childName)
       } catch {
         case e: Throwable =>
           logger.warn("Error in worker", e)
@@ -121,7 +126,13 @@ object WorkerRunner extends Logging {
   }
 }
 
-case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput, T], childName: String) extends AWSNotebookRunner[T] {
+case class WorkerRunner[T]
+(
+  parent: URI,
+  fn: SerializableFunction[NotebookOutput, T],
+  childName: String,
+  className: String
+) extends AWSNotebookRunner[T] {
 
   override val http_port = 1081 + Random.nextInt(64)
   override val s3bucket: String = if (parent.getScheme.startsWith("s3")) parent.getHost else null
@@ -140,4 +151,5 @@ case class WorkerRunner[T](parent: URI, fn: SerializableFunction[NotebookOutput,
     S3Util.upload(log)
     t
   }
+
 }

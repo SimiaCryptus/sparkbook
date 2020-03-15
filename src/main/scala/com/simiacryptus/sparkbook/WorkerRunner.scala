@@ -146,7 +146,7 @@ case class WorkerRunner[T]
   override def apply(log: NotebookOutput): T = {
     logger.info(com.simiacryptus.ref.wrappers.RefString.format("Starting report %s at %s", childName, parent))
     log.setArchiveHome(parent)
-    log.setName(childName)
+    log.setDisplayName(childName)
     val t = fn.apply(log)
     S3Util.upload(log)
     t

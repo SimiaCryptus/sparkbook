@@ -173,7 +173,7 @@ trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunctio
   def get(): T = {
     try {
       val uuid = UUID.randomUUID()
-      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${uuid.toString}/"), http_port, false, s"${name}_${uuid.toString}", uuid)
+      val log = new MarkdownNotebookOutput(new File(s"report/${name}/${uuid.toString}/"), false, s"${name}_${uuid.toString}", uuid, http_port)
       try {
         val t = apply(log)
         logger.info("Finished worker tiledTexturePaintingPhase")

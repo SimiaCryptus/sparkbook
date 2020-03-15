@@ -64,7 +64,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
               throw new RuntimeException(e)
           }
           val t = BaseAWSNotebookRunner.this.apply(log)
-          log.setFrontMatterProperty("status", "OK")
+          log.setMetadata("status", "OK")
           t
         }
 

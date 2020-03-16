@@ -123,8 +123,8 @@ object EC2Runner extends Logging {
     * @return the test name
     */
   def getTestName(fn: Object): String = {
-    var name = fn.getClass.getCanonicalName
-    if (null == name || name.isEmpty) name = fn.getClass.getSimpleName
+    var name = fn.getClass.getSimpleName
+    if (null == name || name.isEmpty) name = fn.getClass.toString
     if (null == name || name.isEmpty) name = "index"
     name
   }

@@ -55,10 +55,10 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
           log.setArchiveHome(s3home)
           log.onComplete(() => {
             val uploads = S3Util.upload(log);
-            sendCompleteEmail(log.getId, log.getRoot, uploads, startTime)
+            sendCompleteEmail(log.getFileName, log.getRoot, uploads, startTime)
           })
           try
-            sendStartEmail(log.getId, this)
+            sendStartEmail(log.getDisplayName, this)
           catch {
             case e@(_: IOException | _: URISyntaxException) =>
               throw new RuntimeException(e)
@@ -85,9 +85,9 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
 
   def http_port = 1080
 
-  private def sendCompleteEmail(testId: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
+  private def sendCompleteEmail(name: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
-      val reportFile = new File(workingDir, testId + ".html")
+      val reportFile = new File(workingDir, name + ".html")
       logger.info(com.simiacryptus.ref.wrappers.RefString.format("Emailing report at %s to %s", reportFile, emailAddress))
       var html: String = null
       try {
@@ -121,9 +121,9 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
       val durationMin = (com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis - startTime) / (1000.0 * 60)
       val subject = f"$className Completed in ${durationMin}%.3fmin"
       val append = "<hr/>" + List(
-        new File(workingDir, testId + ".zip"),
-        new File(workingDir, testId + ".pdf"),
-        new File(workingDir, testId + ".html")
+        new File(workingDir, name + ".zip"),
+        new File(workingDir, name + ".pdf"),
+        new File(workingDir, name + ".html")
       ).map((file: File) => {
         val absoluteFile = file.getAbsoluteFile
         val url = uploads.get(absoluteFile)
@@ -157,7 +157,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
 
   @throws[IOException]
   @throws[URISyntaxException]
-  private def sendStartEmail(testId: String, fn: SerializableFunction[NotebookOutput, _]): Unit = {
+  private def sendStartEmail(testName: String, fn: SerializableFunction[NotebookOutput, _]): Unit = {
     if (null != emailAddress && !emailAddress.isEmpty) {
       val publicHostname = Try {
         IOUtils.toString(new URI("http://169.254.169.254/latest/meta-data/public-hostname"), "UTF-8")
@@ -170,7 +170,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
       val html = <html>
         <body>
           <h1>
-            {testId}
+            {testName}
           </h1>
           <p>
             <a href={"http://" + publicHostname + ":1080/"}>The tiledTexturePaintingPhase can be monitored at

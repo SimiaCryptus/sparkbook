@@ -50,7 +50,7 @@ trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
       }
       val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
       env.putAll(workerEnvironment.apply(node))
-      val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
+      val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir, false)
       (node, control)
     }
   }

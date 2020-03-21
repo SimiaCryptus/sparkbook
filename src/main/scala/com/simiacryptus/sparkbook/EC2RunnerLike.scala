@@ -47,7 +47,7 @@ trait EC2RunnerLike extends Logging {
     try {
       val runnable = command(node)
       logger.info("Updated runnable: " + runnable)
-      (node, control, control.start(runnable))
+      (node, control, control.start(()=>runnable.get()))
     }
     catch {
       case e: Throwable =>

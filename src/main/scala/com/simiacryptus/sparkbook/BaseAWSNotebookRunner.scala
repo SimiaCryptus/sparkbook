@@ -173,7 +173,7 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
             {testName}
           </h1>
           <p>
-            <a href={"http://" + publicHostname + ":1080/"}>The tiledTexturePaintingPhase can be monitored at
+            <a href={"http://" + publicHostname + ":1080/"}>The {className} report can be monitored at
               {publicHostname}
             </a>
           </p>

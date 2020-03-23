@@ -27,6 +27,7 @@ import java.util.regex.Pattern
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
 import com.simiacryptus.aws._
+import com.simiacryptus.aws.exe.EmailUtil
 import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
 import com.simiacryptus.notebook.NotebookOutput
 import com.simiacryptus.sparkbook.util.Java8Util._
@@ -55,7 +56,9 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
           log.setArchiveHome(s3home)
           log.onComplete(() => {
             val uploads = S3Util.upload(log);
-            sendCompleteEmail(log.getFileName, log.getRoot, uploads, startTime)
+            if (null != emailAddress && !emailAddress.isEmpty) {
+              EmailUtil.sendCompleteEmail(log, startTime, emailAddress, uploads, false)
+            }
           })
           try
             sendStartEmail(log.getDisplayName, this)
@@ -84,76 +87,6 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
   def autobrowse = true
 
   def http_port = 1080
-
-  private def sendCompleteEmail(name: String, workingDir: File, uploads: java.util.Map[File, URL], startTime: Long): Unit = {
-    if (null != emailAddress && !emailAddress.isEmpty) {
-      val reportFile = new File(workingDir, name + ".html")
-      logger.info(com.simiacryptus.ref.wrappers.RefString.format("Emailing report at %s to %s", reportFile, emailAddress))
-      var html: String = null
-      try {
-        html = FileUtils.readFileToString(reportFile, "UTF-8")
-      }
-      catch {
-        case e: IOException =>
-          html = e.getMessage
-      }
-      val compile = Pattern.compile("\"([^\"]+?)\"")
-      val matcher = compile.matcher(html)
-      var start = 0
-      var replacedHtml = ""
-      while ( {
-        matcher.find(start)
-      }) {
-        replacedHtml += html.substring(start, matcher.start)
-        val stringLiteralText = matcher.group(1)
-        val imageFile = new File(workingDir, stringLiteralText).getAbsoluteFile
-        val url = uploads.get(imageFile)
-        if (null == url) {
-          logger.info(com.simiacryptus.ref.wrappers.RefString.format("No File Found for %s, reverting to %s", imageFile, stringLiteralText))
-          replacedHtml += "\"" + stringLiteralText + "\""
-        }
-        else {
-          logger.info(com.simiacryptus.ref.wrappers.RefString.format("Rewriting %s to %s at %s", stringLiteralText, imageFile, url))
-          replacedHtml += "\"" + url + "\""
-        }
-        start = matcher.end
-      }
-      val durationMin = (com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis - startTime) / (1000.0 * 60)
-      val subject = f"$className Completed in ${durationMin}%.3fmin"
-      val append = "<hr/>" + List(
-        new File(workingDir, name + ".zip"),
-        new File(workingDir, name + ".pdf"),
-        new File(workingDir, name + ".html")
-      ).map((file: File) => {
-        val absoluteFile = file.getAbsoluteFile
-        val url = uploads.get(absoluteFile)
-        if (null == url) {
-          logger.info("Not found: " + absoluteFile)
-          import scala.collection.JavaConverters._
-          uploads.asScala.foreach(t => logger.info("Upload: " + t._1 + " -> " + t._2))
-          <p>
-            {file.getName}
-          </p>.toString()
-        } else {
-          <p>
-            <a href={url.toString}>
-              {file.getName}
-            </a>
-          </p>.toString()
-        }
-      })
-        .reduce((a: String, b: String) => a + b)
-      val endTag = "</body>"
-      if (replacedHtml.contains(endTag)) replacedHtml = replacedHtml.replace(endTag, append + endTag)
-      else replacedHtml += append
-      val attachments: Array[File] = Array.empty
-      try {
-        SESUtil.send(AmazonSimpleEmailServiceClientBuilder.defaultClient, subject, emailAddress, replacedHtml, replacedHtml, attachments: _*)
-      } catch {
-        case e: Throwable => logger.warn("Error sending email to " + emailAddress, e)
-      }
-    }
-  }
 
   @throws[IOException]
   @throws[URISyntaxException]

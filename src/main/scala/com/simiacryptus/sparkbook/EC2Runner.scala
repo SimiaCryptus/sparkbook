@@ -139,6 +139,7 @@ trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
     (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
   }
 
+
   val s3bucket: String = envTuple._2
 
   @transient def envSettings: AwsTendrilEnvSettings = envTuple._1

@@ -65,6 +65,7 @@ class SimpleScalaRepl extends InteractiveSetup[Object] {
     null
   }
 
+  override def s3bucket: String = ""
 }
 
 

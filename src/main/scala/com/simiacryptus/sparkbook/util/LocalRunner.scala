@@ -37,7 +37,7 @@ trait LocalRunner[T] extends SerializableSupplier[T] with Logging {
       get()
     } finally {
       logger.warn("Exiting node worker", new RuntimeException("Stack Trace"))
-      com.simiacryptus.ref.wrappers.RefSystem.exit(0)
+      System.exit(0)
     }
   }
 

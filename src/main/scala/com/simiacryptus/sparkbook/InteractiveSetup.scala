@@ -21,15 +21,23 @@ package com.simiacryptus.sparkbook
 
 import java.util.concurrent.TimeUnit
 
+import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.simiacryptus.lang.SerializableFunction
+import com.simiacryptus.aws.EC2Util
 import com.simiacryptus.notebook.{JsonQuery, MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.ref.wrappers.RefFunction
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.util.CodeUtil
 
-trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
+object InteractiveSetup {
+  //@JsonIgnore @transient implicit val s3client: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(EC2Util.REGION).build()
+  //@JsonIgnore @transient implicit val ec2client: AmazonEC2 = AmazonEC2ClientBuilder.standard().withRegion(EC2Util.REGION).build()
+}
+
+trait InteractiveSetup[T] extends ScalaReportBase[T] {
 
   override def apply(log: NotebookOutput): T = {
     log.h1(className)
@@ -44,10 +52,8 @@ trait InteractiveSetup[T] extends SerializableFunction[NotebookOutput, T] {
         .enableDefaultTyping()
     }).setValue(this).print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
     if (monitorRefLog) {
-      CodeUtil.withRefLeakMonitor(log, new RefFunction[NotebookOutput, T] {
-        override def apply(f: NotebookOutput): T = {
-          Option(value).getOrElse(InteractiveSetup.this).postConfigure(log)
-        }
+      CodeUtil.withRefLeakMonitor(log, (f: NotebookOutput) => {
+        Option(value).getOrElse(InteractiveSetup.this).postConfigure(log)
       })
     } else {
       Option(value).getOrElse(this).postConfigure(log)

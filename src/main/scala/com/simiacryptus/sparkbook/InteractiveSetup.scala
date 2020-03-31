@@ -44,12 +44,13 @@ trait InteractiveSetup[T] extends ScalaReportBase[T] {
     log.p(description)
     reference(log)
     val value = new JsonQuery[InteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
-      new ObjectMapper()
+      val objectMapper = new ObjectMapper()
+      objectMapper
         .enable(SerializationFeature.INDENT_OUTPUT)
         .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
         .enable(MapperFeature.USE_STD_BEAN_NAMING)
         .registerModule(DefaultScalaModule)
-        .enableDefaultTyping()
+        .activateDefaultTyping(objectMapper.getPolymorphicTypeValidator())
     }).setValue(this).print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
     if (monitorRefLog) {
       CodeUtil.withRefLeakMonitor(log, (f: NotebookOutput) => {

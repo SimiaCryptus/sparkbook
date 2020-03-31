@@ -66,6 +66,7 @@ object SparkRepl extends SparkSessionProvider {
     log.p(tableOutput.toMarkdownTable)
   }
 
+  override def s3bucket: String = ""
 }
 
 class SparkRepl extends SerializableFunction[NotebookOutput, Object] with SparkSessionProvider {
@@ -150,4 +151,6 @@ class SparkRepl extends SerializableFunction[NotebookOutput, Object] with SparkS
       )
     )).createOrReplaceTempView("guids")
   }
+
+  override def s3bucket: String = ""
 }

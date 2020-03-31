@@ -42,9 +42,9 @@ trait SparkSessionProvider extends Logging {
 
   def workerMemory: String = Option(com.simiacryptus.ref.wrappers.RefSystem.getenv("SPARK_WORKER_MEMORY")).getOrElse("60g")
 
-  def hiveRoot: Option[String] = Option(s3bucket).map(bucket => s"s3a://$bucket/data/")
+  def hiveRoot: Option[String] = Option(s3bucket).filter(!_.isEmpty).map(bucket => s"s3a://$bucket/data/")
 
-  protected def s3bucket: String = null
+  def s3bucket: String
 
   def sc = spark.sparkContext
 

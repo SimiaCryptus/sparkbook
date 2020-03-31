@@ -19,49 +19,59 @@
 
 package com.simiacryptus.sparkbook
 
+import java.net.URI
+
 import com.simiacryptus.lang.SerializableFunction
 import com.simiacryptus.notebook.NotebookOutput
+import com.simiacryptus.sparkbook.repl.SparkSessionProvider
 import com.simiacryptus.util.S3Uploader
-import org.apache.spark.sql.SparkSession
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] {
+trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with SparkSessionProvider {
 
   def s3bucket: String
-  lazy val spark = SparkSession.getActiveSession.get
   require(null != classOf[com.fasterxml.jackson.module.scala.DefaultScalaModule])
 
   def upload(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
     log.write()
-    if (!s3bucket.isEmpty) for (archiveHome <- Option(log.getArchiveHome).filter(!_.toString.isEmpty)) {
-      val localHome = log.getRoot
-      val localName = localHome.getName
-      val archiveName = archiveHome.getPath.stripSuffix("/").split('/').last
+    val dest = getArchiveHome(log)
+    for (archiveHome <- dest) {
       lazy val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
-      if (localHome.isDirectory && localName.equalsIgnoreCase(archiveName)) {
-        if (s3bucket != null) {
-          S3Uploader.upload(s3, archiveHome.resolve(".."), localHome)
-        }
+      S3Uploader.upload(s3, archiveHome, log.getRoot)
+    }
+  }
+
+  def getArchiveHome(log: NotebookOutput) = {
+    val archiveHome = Option(log.getArchiveHome)
+      .filter(!_.toString.isEmpty)
+      .filter(!_.getHost.isEmpty)
+      .filter(_.getHost != "null")
+    if (archiveHome.isDefined) {
+      val logRoot = log.getRoot
+      val archiveName = archiveHome.get.getPath.stripSuffix("/").split('/').last
+      if (logRoot.isDirectory && logRoot.getName.equalsIgnoreCase(archiveName)) {
+        Option(archiveHome.get.resolve(".."))
       } else {
-        if (s3bucket != null) S3Uploader.upload(s3, archiveHome, localHome)
+        Option(archiveHome.get)
+      }
+    } else {
+      if (s3bucket != null && !s3bucket.isEmpty) {
+        Option(new URI(s"s3://$s3bucket/${log.getFileName}/${log.getId}/"))
+      } else {
+        None
       }
     }
   }
 
   def uploadAsync(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
     log.write()
-    for (archiveHome <- Option(log.getArchiveHome).filter(!_.toString.isEmpty)) {
+    val dest = getArchiveHome(log)
+    for (archiveHome <- dest) {
       Future {
         val localHome = log.getRoot
-        val localName = localHome.getName
-        val archiveName = archiveHome.getPath.stripSuffix("/").split('/').last
         val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
-        if (localHome.isDirectory && localName.equalsIgnoreCase(archiveName)) {
-          S3Uploader.upload(s3, archiveHome.resolve(".."), localHome)
-        } else {
-          S3Uploader.upload(s3, archiveHome, localHome)
-        }
+        S3Uploader.upload(s3, archiveHome, localHome)
       }
     }
   }

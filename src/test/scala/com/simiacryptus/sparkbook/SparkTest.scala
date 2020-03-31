@@ -30,7 +30,7 @@ object LocalSparkTest extends SparkTest with LocalRunner[Object] with NotebookRu
 
 object EmbeddedSparkTest extends SparkTest with EmbeddedSparkRunner[Object] with NotebookRunner[Object] {
 
-  override protected val s3bucket: String = envTuple._2
+  override val s3bucket: String = envTuple._2
   override val numberOfWorkersPerNode: Int = 2
   override val workerMemory: String = "2g"
 
@@ -56,6 +56,8 @@ object EC2SparkTest extends SparkTest with EC2SparkRunner[Object] with AWSNotebo
 
 
 abstract class SparkTest extends SerializableFunction[NotebookOutput, Object] with Logging with SparkSessionProvider {
+
+  override def s3bucket: String = ""
 
   override def apply(log: NotebookOutput): Object = {
     for (i <- 0 until 3) {

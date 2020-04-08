@@ -21,14 +21,9 @@ package com.simiacryptus.sparkbook
 
 import java.util.concurrent.TimeUnit
 
-import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.simiacryptus.aws.EC2Util
 import com.simiacryptus.notebook.{JsonQuery, MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.ref.wrappers.RefFunction
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.util.CodeUtil
 

@@ -20,9 +20,8 @@
 package com.simiacryptus.sparkbook.aws
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.aws.Const._
 import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2Runner}
-
-import Const._
 
 trait P2_XL extends EC2Runner[Object] with AWSNotebookRunner[Object] {
 

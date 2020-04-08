@@ -20,9 +20,8 @@
 package com.simiacryptus.sparkbook.aws
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.simiacryptus.sparkbook.aws.Const._
 import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2Runner}
-
-import Const._
 
 trait P3_2XL extends EC2Runner[Object] with AWSNotebookRunner[Object] {
   override val s3bucket: String = "examples.deepartist.org"
@@ -34,8 +33,8 @@ trait P3_2XL extends EC2Runner[Object] with AWSNotebookRunner[Object] {
   def className: String
 
   override def javaProperties: Map[String, String] = super.javaProperties ++ Map(
-    "MAX_TOTAL_MEMORY" -> (16 * GiB).toString,
-    "MAX_DEVICE_MEMORY" -> (16 * GiB).toString,
+    "MAX_TOTAL_MEMORY" -> (14 * GiB).toString,
+    "MAX_DEVICE_MEMORY" -> (14 * GiB).toString,
     "CUDA_DEFAULT_PRECISION" -> "Float",
     "MAX_FILTER_ELEMENTS" -> (512 * MiB).toString,
     "MAX_IO_ELEMENTS" -> (512 * MiB).toString

@@ -31,14 +31,37 @@ import scala.concurrent.{ExecutionContext, Future}
 trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with SparkSessionProvider {
 
   def s3bucket: String
+
   require(null != classOf[com.fasterxml.jackson.module.scala.DefaultScalaModule])
 
-  def upload(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
+  def upload(log: NotebookOutput) = {
     log.write()
     val dest = getArchiveHome(log)
     for (archiveHome <- dest) {
       lazy val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
       S3Uploader.upload(s3, archiveHome, log.getRoot)
+    }
+  }
+
+  def upload_noID(log: NotebookOutput, overwrite: Boolean) = {
+    log.write()
+    val dest = getArchiveHome(log)
+    for (archiveHome <- dest) {
+      lazy val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
+      if (overwrite) S3Uploader.rmDir(s3, archiveHome)
+      S3Uploader.uploadDir(s3, archiveHome, log.getRoot)
+    }
+  }
+
+  def uploadAsync(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
+    log.write()
+    val dest = getArchiveHome(log)
+    for (archiveHome <- dest) {
+      Future {
+        val localHome = log.getRoot
+        val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
+        S3Uploader.upload(s3, archiveHome, localHome)
+      }
     }
   }
 
@@ -60,18 +83,6 @@ trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with Sp
         Option(new URI(s"s3://$s3bucket/${log.getFileName}/${log.getId}/"))
       } else {
         None
-      }
-    }
-  }
-
-  def uploadAsync(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
-    log.write()
-    val dest = getArchiveHome(log)
-    for (archiveHome <- dest) {
-      Future {
-        val localHome = log.getRoot
-        val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
-        S3Uploader.upload(s3, archiveHome, localHome)
       }
     }
   }

@@ -19,10 +19,9 @@
 
 package com.simiacryptus.sparkbook
 
-import java.io.{File, IOException}
-import java.net.{InetAddress, URI, URISyntaxException, URL}
+import java.io.IOException
+import java.net.{InetAddress, URI, URISyntaxException}
 import java.util.Date
-import java.util.regex.Pattern
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.fasterxml.jackson.databind.{ObjectMapper, SerializationFeature}
@@ -32,7 +31,7 @@ import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
 import com.simiacryptus.notebook.NotebookOutput
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
-import org.apache.commons.io.{FileUtils, IOUtils}
+import org.apache.commons.io.IOUtils
 
 import scala.util.Try
 
@@ -106,7 +105,9 @@ trait BaseAWSNotebookRunner[T] extends SerializableSupplier[T] with Serializable
             {testName}
           </h1>
           <p>
-            <a href={"http://" + publicHostname + ":1080/"}>The {className} report can be monitored at
+            <a href={"http://" + publicHostname + ":1080/"}>The
+              {className}
+              report can be monitored at
               {publicHostname}
             </a>
           </p>

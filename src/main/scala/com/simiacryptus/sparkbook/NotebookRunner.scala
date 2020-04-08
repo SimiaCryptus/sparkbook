@@ -106,37 +106,6 @@ object NotebookRunner {
     fileContent.close()
   }
 
-  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
-    val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
-    log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
-    val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
-      try {
-        val images = contentImage()
-        if (null != images && !images.isEmpty) {
-          val fileContent: OutputStream = log.file(imageName_content)
-          toGif(fileContent, images, delay, 1200)
-          fileContent.close()
-          toGif(outputStream, images, delay, 1200)
-        }
-      }
-      catch {
-        case e: IOException =>
-          throw new RuntimeException(e)
-      }
-    }: Unit)
-    try {
-      fn
-    } finally {
-      val images = contentImage()
-      if (null != images) {
-        val fileContent = log.file(imageName_content)
-        toGif(fileContent, images, delay, 1200)
-        fileContent.close()
-      }
-      httpHandle_content.close()
-    }
-  }
-
   def toGif[T](outputStream: OutputStream, images: Seq[BufferedImage], delay: Int, maxWidth: Int) = {
     if (null != images && 0 < images.length) {
       val imageOutputStream = new MemoryCacheImageOutputStream(outputStream)
@@ -166,6 +135,37 @@ object NotebookRunner {
     graphics.setRenderingHints(hints)
     graphics.drawImage(source, 0, 0, width, height, null)
     image
+  }
+
+  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
+    val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {
+      try {
+        val images = contentImage()
+        if (null != images && !images.isEmpty) {
+          val fileContent: OutputStream = log.file(imageName_content)
+          toGif(fileContent, images, delay, 1200)
+          fileContent.close()
+          toGif(outputStream, images, delay, 1200)
+        }
+      }
+      catch {
+        case e: IOException =>
+          throw new RuntimeException(e)
+      }
+    }: Unit)
+    try {
+      fn
+    } finally {
+      val images = contentImage()
+      if (null != images) {
+        val fileContent = log.file(imageName_content)
+        toGif(fileContent, images, delay, 1200)
+        fileContent.close()
+      }
+      httpHandle_content.close()
+    }
   }
 
 }

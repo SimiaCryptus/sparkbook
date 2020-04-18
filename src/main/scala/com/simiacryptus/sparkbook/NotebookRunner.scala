@@ -64,8 +64,8 @@ object NotebookRunner {
   }
 
   def withMonitoredJpg[T](contentImage: () => BufferedImage)(fn: => T)(implicit log: NotebookOutput) = {
-    val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
-    log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
+    val imageName_content = String.format("image_%s.jpg", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
+    log.p("<a href=\"etc/" + imageName_content + "\"><img src=\"etc/" + imageName_content + "\"></a>")
 
     def writeFile() = {
       try {

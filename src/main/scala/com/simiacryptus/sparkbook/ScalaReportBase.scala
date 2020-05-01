@@ -43,28 +43,6 @@ trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with Sp
     }
   }
 
-  def upload_noID(log: NotebookOutput, overwrite: Boolean) = {
-    log.write()
-    val dest = getArchiveHome(log)
-    for (archiveHome <- dest) {
-      lazy val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
-      if (overwrite) S3Uploader.rmDir(s3, archiveHome)
-      S3Uploader.uploadDir(s3, archiveHome, log.getRoot)
-    }
-  }
-
-  def uploadAsync(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
-    log.write()
-    val dest = getArchiveHome(log)
-    for (archiveHome <- dest) {
-      Future {
-        val localHome = log.getRoot
-        val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
-        S3Uploader.upload(s3, archiveHome, localHome)
-      }
-    }
-  }
-
   def getArchiveHome(log: NotebookOutput) = {
     val archiveHome = Option(log.getArchiveHome)
       .filter(!_.toString.isEmpty)
@@ -83,6 +61,28 @@ trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with Sp
         Option(new URI(s"s3://$s3bucket/${log.getFileName}/${log.getId}/"))
       } else {
         None
+      }
+    }
+  }
+
+  def upload_noID(log: NotebookOutput, overwrite: Boolean) = {
+    log.write()
+    val dest = getArchiveHome(log)
+    for (archiveHome <- dest) {
+      lazy val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
+      if (overwrite) S3Uploader.rmDir(s3, archiveHome)
+      S3Uploader.uploadDir(s3, archiveHome, log.getRoot)
+    }
+  }
+
+  def uploadAsync(log: NotebookOutput)(implicit executionContext: ExecutionContext = ExecutionContext.global) = {
+    log.write()
+    val dest = getArchiveHome(log)
+    for (archiveHome <- dest) {
+      Future {
+        val localHome = log.getRoot
+        val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
+        S3Uploader.upload(s3, archiveHome, localHome)
       }
     }
   }

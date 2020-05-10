@@ -22,9 +22,8 @@ package com.simiacryptus.sparkbook
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, TendrilControl}
+import com.simiacryptus.aws.{EC2Util, TendrilControl, TendrilSettings}
 import com.simiacryptus.lang.SerializableSupplier
-import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Logging
 
 trait EC2RunnerLike extends Logging {
@@ -32,7 +31,7 @@ trait EC2RunnerLike extends Logging {
   (
     nodeSettings: EC2NodeSettings,
     javaOpts: String = "",
-    workerEnvironment: EC2Util.EC2Node => RefHashMap[String, String]
+    workerEnvironment: EC2Util.EC2Node => java.util.Map[String, String]
   ): (EC2Util.EC2Node, TendrilControl)
 
 
@@ -41,13 +40,13 @@ trait EC2RunnerLike extends Logging {
     nodeSettings: EC2NodeSettings,
     command: EC2Util.EC2Node => SerializableSupplier[T],
     javaOpts: String = "",
-    workerEnvironment: EC2Util.EC2Node => RefHashMap[String, String]
+    workerEnvironment: EC2Util.EC2Node => java.util.Map[String, String]
   ): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
     val (node: EC2Util.EC2Node, control: TendrilControl) = start(nodeSettings, javaOpts, workerEnvironment)
     try {
       val runnable = command(node)
       logger.info("Updated runnable: " + runnable)
-      (node, control, control.start(() => runnable.get()))
+      (node, control, control.start(TendrilSettings.INSTANCE.setAppTask(() => runnable.get())))
     }
     catch {
       case e: Throwable =>

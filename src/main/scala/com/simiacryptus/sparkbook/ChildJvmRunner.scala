@@ -34,25 +34,23 @@ import scala.collection.JavaConversions._
 import scala.util.Random
 
 trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
-  override lazy val runner: EC2RunnerLike = new EC2RunnerLike with Logging {
-    override def start(nodeSettings: EC2NodeSettings, subJavaOpts: String, workerEnvironment: EC2Util.EC2Node => RefHashMap[String, String]): (EC2Util.EC2Node, TendrilControl) = {
-      val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
+  override lazy val runner: EC2RunnerLike = (_: EC2NodeSettings, subJavaOpts: String, workerEnvironment: EC2Util.EC2Node => java.util.Map[String, String]) => {
+    val node = new EC2Node(AmazonEC2ClientBuilder.defaultClient(), null, "") {
 
-        override def getStatus: Instance = {
-          new Instance()
-            .withPublicDnsName(EC2Util.publicHostname)
-            .withState(new InstanceState().withName(""))
-        }
-
-        override def terminate(): TerminateInstancesResult = null
-
-        override def close(): Unit = {}
+      override def getStatus: Instance = {
+        new Instance()
+          .withPublicDnsName(EC2Util.publicHostname)
+          .withState(new InstanceState().withName(""))
       }
-      val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
-      env.putAll(workerEnvironment.apply(node))
-      val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
-      (node, control)
+
+      override def terminate(): TerminateInstancesResult = null
+
+      override def close(): Unit = {}
     }
+    val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
+    env.putAll(workerEnvironment.apply(node))
+    val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
+    (node, control)
   }
 
   def workingDir = new File(".")

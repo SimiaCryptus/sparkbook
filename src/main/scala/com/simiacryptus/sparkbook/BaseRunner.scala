@@ -19,15 +19,15 @@
 
 package com.simiacryptus.sparkbook
 
+import java.util
 import java.util.concurrent.Future
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, TendrilControl}
 import com.simiacryptus.lang.SerializableSupplier
-import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.EC2Runner.{browse, join}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   def nodeSettings: EC2NodeSettings
@@ -38,13 +38,13 @@ trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   }
 
   def main(args: Array[String]): Unit = {
-    val (node, _, _) = start(args)
+    val (node, _, _) = start()
     browse(node, 1080)
     join(node)
   }
 
-  def start(args: Array[String] = Array.empty): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
-    runner.run(nodeSettings, _ => this, javaOpts, _ => new RefHashMap[String, String](environment))
+  def start(): (EC2Util.EC2Node, TendrilControl, Future[T]) = {
+    runner.run(nodeSettings, _ => this, javaOpts, _ => new java.util.HashMap[String, String](environment.asJava))
   }
 
   def environment: Map[String, String] = Map("SPARK_HOME" -> ".")

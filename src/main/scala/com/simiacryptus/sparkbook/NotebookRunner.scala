@@ -171,7 +171,7 @@ object NotebookRunner {
 }
 
 trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
-  def get(): T = {
+  override def get(): T = {
     try {
       val uuid = UUID.randomUUID()
       val log = new MarkdownNotebookOutput(

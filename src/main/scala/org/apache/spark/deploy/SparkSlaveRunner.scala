@@ -80,7 +80,7 @@ case class SparkSlaveRunner
   val workerPort: Int = 7078 + Random.nextInt(128)
   val uiPort: Int = 8080 + Random.nextInt(128)
 
-  override def start(args: Array[String]) = {
+  override def start() = {
     new File("launcher/target/scala-2.11").mkdirs()
     runner.run[Object](
       nodeSettings = nodeSettings,

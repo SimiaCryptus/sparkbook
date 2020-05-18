@@ -24,6 +24,7 @@ import java.awt.{Graphics2D, RenderingHints}
 import java.io.{File, IOException, OutputStream}
 import java.util.UUID
 
+import com.simiacryptus.aws.TendrilSettings
 import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
 import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.sparkbook.util.Java8Util._
@@ -181,6 +182,9 @@ trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunctio
         uuid,
         http_port)
       try {
+        log.subreport("To Run Again On EC2", "run_ec2", (sublog: NotebookOutput) => {
+          TendrilSettings.INSTANCE.howToRun(sublog)
+        })
         val t = apply(log)
         logger.info("Finished " + name)
         t

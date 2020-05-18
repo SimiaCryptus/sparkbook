@@ -25,8 +25,7 @@ import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
 import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInstancesResult}
 import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
-import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
-import com.simiacryptus.ref.wrappers.RefHashMap
+import com.simiacryptus.aws.{EC2Util, Tendril}
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 

@@ -43,28 +43,6 @@ trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with Sp
     }
   }
 
-  def getArchiveHome(log: NotebookOutput) = {
-    val archiveHome = Option(log.getArchiveHome)
-      .filter(!_.toString.isEmpty)
-      .filter(!_.getHost.isEmpty)
-      .filter(_.getHost != "null")
-    if (archiveHome.isDefined) {
-      val logRoot = log.getRoot
-      val archiveName = archiveHome.get.getPath.stripSuffix("/").split('/').last
-      if (logRoot.isDirectory && logRoot.getName.equalsIgnoreCase(archiveName)) {
-        Option(archiveHome.get.resolve(".."))
-      } else {
-        Option(archiveHome.get)
-      }
-    } else {
-      if (s3bucket != null && !s3bucket.isEmpty) {
-        Option(new URI(s"s3://$s3bucket/${log.getFileName}/${log.getId}/"))
-      } else {
-        None
-      }
-    }
-  }
-
   def upload_noID(log: NotebookOutput, overwrite: Boolean) = {
     log.write()
     val dest = getArchiveHome(log)
@@ -83,6 +61,28 @@ trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with Sp
         val localHome = log.getRoot
         val s3 = S3Uploader.buildClientForBucket(archiveHome.getHost)
         S3Uploader.upload(s3, archiveHome, localHome)
+      }
+    }
+  }
+
+  def getArchiveHome(log: NotebookOutput) = {
+    val archiveHome = Option(log.getArchiveHome)
+      .filter(!_.toString.isEmpty)
+      .filter(!_.getHost.isEmpty)
+      .filter(_.getHost != "null")
+    if (archiveHome.isDefined) {
+      val logRoot = log.getRoot
+      val archiveName = archiveHome.get.getPath.stripSuffix("/").split('/').last
+      if (logRoot.isDirectory && logRoot.getName.equalsIgnoreCase(archiveName)) {
+        Option(archiveHome.get.resolve(".."))
+      } else {
+        Option(archiveHome.get)
+      }
+    } else {
+      if (s3bucket != null && !s3bucket.isEmpty) {
+        Option(new URI(s"s3://$s3bucket/${log.getFileName}/${log.getId}/"))
+      } else {
+        None
       }
     }
   }

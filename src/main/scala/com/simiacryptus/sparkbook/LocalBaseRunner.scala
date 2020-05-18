@@ -25,7 +25,6 @@ import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril, TendrilControl}
 import com.simiacryptus.lang.SerializableCallable
-import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 
 class LocalBaseRunner extends EC2RunnerLike {

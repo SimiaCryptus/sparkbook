@@ -24,7 +24,6 @@ import java.util.Random
 
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{AwsTendrilNodeSettings, EC2Util, Tendril, TendrilControl}
-import com.simiacryptus.ref.wrappers.RefHashMap
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 

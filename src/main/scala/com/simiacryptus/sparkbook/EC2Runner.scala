@@ -128,15 +128,24 @@ object EC2Runner extends Logging {
     if (null == name || name.isEmpty) name = "index"
     name
   }
-
 }
 
 trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
   Tendril.getKryo.copy(this)
   @transient protected lazy val envTuple = {
-    val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
-    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, UserSettings.load.emailAddress)
-    (envSettings, envSettings.bucket, UserSettings.load.emailAddress)
+    val envSettings = ScalaJson.cache(
+      new File("ec2-settings." + EC2Util.REGION.toString + ".json"),
+      classOf[AwsTendrilEnvSettings],
+      () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+    (envSettings, envSettings.bucket, new Object() {
+      private lazy val str = Try {
+        val address = UserSettings.load.emailAddress
+        SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, address)
+        address
+      }
+
+      override def toString: String = str.getOrElse("")
+    })
   }
 
 
@@ -144,7 +153,7 @@ trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
 
   @transient def envSettings: AwsTendrilEnvSettings = envTuple._1
 
-  @transient def emailAddress: String = envTuple._3
+  @transient def emailAddress: String = envTuple._3.toString
 
   @transient override def runner: EC2RunnerLike = new DefaultEC2Runner
 

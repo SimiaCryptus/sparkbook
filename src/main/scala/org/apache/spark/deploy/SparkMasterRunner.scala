@@ -28,8 +28,10 @@ import com.simiacryptus.sparkbook.util.Logging
 import com.simiacryptus.sparkbook.{DefaultEC2Runner, EC2Runner, EC2RunnerLike}
 import org.apache.commons.io.FileUtils
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+//import scala.jdk.CollectionConverters._
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 object SparkMasterRunner {
   def joinAll() = {
@@ -37,7 +39,7 @@ object SparkMasterRunner {
     val wasDaemon = currentThread.isDaemon
     Thread.sleep((1 minute).toMillis)
     //currentThread.setDaemon(true)
-    Stream.continually(Thread.getAllStackTraces.toMap.filter(!_._1.isDaemon).filter(_._1 != currentThread))
+    Stream.continually(Thread.getAllStackTraces.asScala.toMap.filter(!_._1.isDaemon).filter(_._1 != currentThread))
       .takeWhile(!_.isEmpty).foreach(runningThreads => {
       for (thread <- runningThreads) {
         println("Running: " + thread._1.getName)

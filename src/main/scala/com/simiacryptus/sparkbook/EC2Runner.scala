@@ -22,6 +22,7 @@ package com.simiacryptus.sparkbook
 import java.io.File
 import java.net.URI
 import java.util.concurrent.{Executors, TimeUnit}
+import scala.language.postfixOps
 
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, AmazonIdentityManagementClientBuilder}
@@ -66,7 +67,7 @@ object EC2Runner extends Logging {
   lazy val (envSettings, s3bucket, emailAddress) = {
     val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(ec2, iam, s3))
     val load = UserSettings.load
-    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, load.emailAddress)
+    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.standard().withRegion(EC2Util.REGION).build(), load.emailAddress)
     (envSettings, envSettings.bucket, load.emailAddress)
   }
 

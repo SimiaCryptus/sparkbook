@@ -26,10 +26,10 @@ import com.amazonaws.services.ec2.model.{Instance, InstanceState, TerminateInsta
 import com.simiacryptus.aws.EC2Util.EC2Node
 import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.aws.{EC2Util, Tendril}
-import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+//import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
@@ -46,7 +46,7 @@ trait ChildJvmRunner[T <: AnyRef] extends BaseRunner[T] with Logging {
 
       override def close(): Unit = {}
     }
-    val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment)
+    val env = new java.util.HashMap[String, String](ChildJvmRunner.this.environment.asJava)
     env.putAll(workerEnvironment.apply(node))
     val control = Tendril.startLocalJvm(18000 + Random.nextInt(1024), javaOpts + " " + subJavaOpts, env, workingDir)
     (node, control)

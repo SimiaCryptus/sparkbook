@@ -26,9 +26,9 @@ import com.simiacryptus.aws.exe.{EC2NodeSettings, UserSettings}
 import com.simiacryptus.aws.{AwsTendrilEnvSettings, AwsTendrilNodeSettings, EC2Util, SESUtil}
 import com.simiacryptus.lang.SerializableSupplier
 import com.simiacryptus.ref.wrappers.RefHashMap
-import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
 import org.apache.spark.deploy.{SparkMasterRunner, SparkSlaveRunner}
+//import scala.collection.parallel.CollectionConverters._
 
 trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
 
@@ -171,7 +171,7 @@ trait SparkRunner[T <: AnyRef] extends SerializableSupplier[T] with Logging {
     "s3bucket" -> s3bucket
   )
 
-  protected def s3bucket = envTuple._2
+  def s3bucket = envTuple._2
 
   private def set(to: AwsTendrilNodeSettings, from: EC2NodeSettings) = {
     to.instanceType = from.machineType

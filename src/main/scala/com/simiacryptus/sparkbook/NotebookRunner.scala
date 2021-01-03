@@ -138,7 +138,7 @@ object NotebookRunner {
     image
   }
 
-  def withMonitoredGif[T](contentImage: () => Seq[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
+  def withMonitoredGif[T](contentImage: () => List[BufferedImage], delay: Int = 100)(fn: => T)(implicit log: NotebookOutput) = {
     val imageName_content = com.simiacryptus.ref.wrappers.RefString.format("image_%s.gif", java.lang.Long.toHexString(MarkdownNotebookOutput.random.nextLong))
     log.p(com.simiacryptus.ref.wrappers.RefString.format("<a href=\"etc/%s\"><img src=\"etc/%s\"></a>", imageName_content, imageName_content))
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/gif", (outputStream: OutputStream) => {

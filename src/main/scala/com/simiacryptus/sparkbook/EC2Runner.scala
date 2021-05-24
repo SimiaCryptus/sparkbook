@@ -67,8 +67,8 @@ object EC2Runner extends Logging {
   lazy val (envSettings, s3bucket, emailAddress) = {
     val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(ec2, iam, s3))
     val load = UserSettings.load
-    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.standard().withRegion(EC2Util.REGION).build(), load.emailAddress)
-    (envSettings, envSettings.bucket, load.emailAddress)
+    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.standard().withRegion(EC2Util.REGION).build(), load.getEmailAddress)
+    (envSettings, envSettings.bucket, load.getEmailAddress)
   }
 
   def join(node: EC2Util.EC2Node) = {
@@ -140,7 +140,7 @@ trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
       () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
     (envSettings, envSettings.bucket, new Object() {
       private lazy val str = Try {
-        val address = UserSettings.load.emailAddress
+        val address = UserSettings.load.getEmailAddress
         SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, address)
         address
       }

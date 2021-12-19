@@ -48,7 +48,7 @@ object SimpleScalaRepl {
 
 import com.simiacryptus.sparkbook.repl.SimpleScalaRepl._
 
-class SimpleScalaRepl extends InteractiveSetup[Object] {
+class SimpleScalaRepl extends InteractiveSetup[Object, SimpleScalaRepl] {
   override val inputTimeoutSeconds = 300
   val defaultCode = """throw new RuntimeException("End Application")"""
 

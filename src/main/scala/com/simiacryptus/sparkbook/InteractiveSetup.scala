@@ -32,13 +32,13 @@ object InteractiveSetup {
   //@JsonIgnore @transient implicit val ec2client: AmazonEC2 = AmazonEC2ClientBuilder.standard().withRegion(EC2Util.REGION).build()
 }
 
-trait InteractiveSetup[T] extends ScalaReportBase[T] {
+trait InteractiveSetup[T <: AnyRef, U <: InteractiveSetup[T,U]] extends ScalaReportBase[T] {
 
   override def apply(log: NotebookOutput): T = {
     log.h1(className)
     log.p(description)
     reference(log)
-    val value = new JsonQuery[InteractiveSetup[T]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
+    val value = new JsonQuery[InteractiveSetup[T,U]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
       val objectMapper = new ObjectMapper()
       objectMapper
         .enable(SerializationFeature.INDENT_OUTPUT)

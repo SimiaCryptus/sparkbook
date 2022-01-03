@@ -77,7 +77,7 @@ object NotebookRunner {
       }
     }
 
-    log.onWrite(new Runnable {
+    val onWriteHandle = log.onWrite(new Runnable {
       override def run(): Unit = writeFile()
     })
     val httpHandle_content = log.getHttpd.addGET("etc/" + imageName_content, "image/jpeg", (r: OutputStream) => {
@@ -94,6 +94,7 @@ object NotebookRunner {
       fn
     } finally {
       writeFile()
+      onWriteHandle.close()
       httpHandle_content.close()
     }
   }

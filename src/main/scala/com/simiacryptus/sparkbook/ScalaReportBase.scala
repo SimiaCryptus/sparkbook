@@ -68,6 +68,7 @@ trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with Sp
   def getArchiveHome(log: NotebookOutput) = {
     val archiveHome = Option(log.getArchiveHome)
       .filter(!_.toString.isEmpty)
+      .filter(_.getHost != null)
       .filter(!_.getHost.isEmpty)
       .filter(_.getHost != "null")
     if (archiveHome.isDefined) {

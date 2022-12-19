@@ -19,40 +19,63 @@
 
 package com.simiacryptus.sparkbook
 
-import java.util.concurrent.TimeUnit
-
 import com.fasterxml.jackson.databind.{MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.simiacryptus.notebook.{JsonQuery, MarkdownNotebookOutput, NotebookOutput}
-import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.notebook.{Jsonable, MarkdownNotebookOutput, NotebookOutput, StringQuery}
+import com.simiacryptus.sparkbook.util.Logging
 import com.simiacryptus.util.CodeUtil
+
+import java.util.concurrent.TimeUnit
 
 object InteractiveSetup {
   //@JsonIgnore @transient implicit val s3client: AmazonS3 = AmazonS3ClientBuilder.standard().withRegion(EC2Util.REGION).build()
   //@JsonIgnore @transient implicit val ec2client: AmazonEC2 = AmazonEC2ClientBuilder.standard().withRegion(EC2Util.REGION).build()
 }
 
-trait InteractiveSetup[T <: AnyRef, U <: InteractiveSetup[T,U]] extends ScalaReportBase[T] {
 
-  override def apply(log: NotebookOutput): T = {
+trait InteractiveSetup[R <: AnyRef, V <: InteractiveSetup[R,V]]
+  extends ScalaReportBase[R]
+  with Jsonable[V]
+  with Logging
+{
+
+  override def objectMapper: ObjectMapper = {
+    val objectMapper = new ObjectMapper
+    objectMapper.enable(SerializationFeature.INDENT_OUTPUT)
+      .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
+      .enable(MapperFeature.USE_STD_BEAN_NAMING)
+      .registerModule(DefaultScalaModule)
+      .activateDefaultTyping(objectMapper.getPolymorphicTypeValidator)
+  }
+
+  override def apply(log: NotebookOutput): R = {
     log.h1(className)
     log.p(description)
     reference(log)
-    val value = new JsonQuery[InteractiveSetup[T,U]](log.asInstanceOf[MarkdownNotebookOutput]).setMapper({
-      val objectMapper = new ObjectMapper()
-      objectMapper
-        .enable(SerializationFeature.INDENT_OUTPUT)
-        .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
-        .enable(MapperFeature.USE_STD_BEAN_NAMING)
-        .registerModule(DefaultScalaModule)
-        .activateDefaultTyping(objectMapper.getPolymorphicTypeValidator())
-    }).setValue(this).print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
+    val query = new StringQuery[V](log.asInstanceOf[MarkdownNotebookOutput]) {
+      override protected def toString(value: V): String = {
+        Option(value).map(_.toJson()).getOrElse("")
+      }
+
+      override protected def fromString(text: String): V = InteractiveSetup.this.fromJson(text)
+    }
+    query.setValue(this.asInstanceOf[V])
+    val value = query.print().get(inputTimeoutSeconds, TimeUnit.SECONDS)
     if (monitorRefLog) {
       CodeUtil.withRefLeakMonitor(log, (f: NotebookOutput) => {
-        Option(value).getOrElse(InteractiveSetup.this).postConfigure(log)
+        run(value)(f)
       })
     } else {
-      Option(value).getOrElse(this).postConfigure(log)
+      run(value)(log)
+    }
+  }
+
+  private def run(value: V)(implicit log: NotebookOutput) = {
+    try {
+      Option(value).getOrElse(InteractiveSetup.this).postConfigure(log)
+    } finally {
+      logger.info(s"Completed ${value.getClass.getSimpleName}. Write and upload.")
+      upload(log)
     }
   }
 
@@ -66,5 +89,5 @@ trait InteractiveSetup[T <: AnyRef, U <: InteractiveSetup[T,U]] extends ScalaRep
 
   def inputTimeoutSeconds = 60
 
-  def postConfigure(l: NotebookOutput): T
+  def postConfigure(l: NotebookOutput): R
 }

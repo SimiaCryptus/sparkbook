@@ -37,7 +37,7 @@ object SimpleScalaRepl {
   @transient private lazy val toolbox = currentMirror.mkToolBox()
 
   def eval_repl(code: String) = {
-    engine.asInstanceOf[IMain].settings.embeddedDefaults[SimpleScalaRepl]
+    engine.asInstanceOf[IMain].settings.embeddedDefaults[SimpleScalaRepl[_]]
     engine.eval(code)
   }
 
@@ -48,7 +48,7 @@ object SimpleScalaRepl {
 
 import com.simiacryptus.sparkbook.repl.SimpleScalaRepl._
 
-class SimpleScalaRepl extends InteractiveSetup[Object, SimpleScalaRepl] {
+class SimpleScalaRepl[T<:SimpleScalaRepl[T]] extends InteractiveSetup[Object, T] {
   override val inputTimeoutSeconds = 300
   val defaultCode = """throw new RuntimeException("End Application")"""
 

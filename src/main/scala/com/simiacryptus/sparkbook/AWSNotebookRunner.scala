@@ -19,13 +19,9 @@
 
 package com.simiacryptus.sparkbook
 
-import java.net.URI
 import java.util.UUID
 
-trait AWSNotebookRunner[T] extends BaseAWSNotebookRunner[T] {
-  def s3bucket: String
-
-  override def s3home: URI = URI.create(s"s3://${s3bucket}/reports/" + UUID.randomUUID().toString + "/")
+trait AWSNotebookRunner[R <: AnyRef, T <: AnyRef with AWSNotebookRunner[R, T]] extends BaseAWSNotebookRunner[R, T] {
 }
 
 object AWSNotebookRunner {

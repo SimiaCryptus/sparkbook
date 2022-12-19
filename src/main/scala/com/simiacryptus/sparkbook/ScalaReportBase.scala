@@ -23,12 +23,12 @@ import java.net.URI
 
 import com.simiacryptus.lang.SerializableFunction
 import com.simiacryptus.notebook.NotebookOutput
-import com.simiacryptus.sparkbook.repl.SparkSessionProvider
 import com.simiacryptus.util.S3Uploader
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait ScalaReportBase[T] extends SerializableFunction[NotebookOutput, T] with SparkSessionProvider {
+trait ScalaReportBase[R] extends SerializableFunction[NotebookOutput, R] //with SparkSessionProvider
+{
 
   def s3bucket: String
 

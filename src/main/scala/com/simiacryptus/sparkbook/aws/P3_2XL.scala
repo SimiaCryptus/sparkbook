@@ -23,9 +23,7 @@ import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.aws.Const._
 import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2Runner}
 
-trait P3_2XL extends EC2Runner[Object] with AWSNotebookRunner[Object] {
-  override val s3bucket: String = "test.deepartist.org"
-
+trait P3_2XL[R <: AnyRef, T <: AnyRef with AWSNotebookRunner[R, T]] extends EC2Runner[R] with AWSNotebookRunner[R, T] {
   override def nodeSettings: EC2NodeSettings = EC2NodeSettings.P3_2XL
 
   override def maxHeap: Option[String] = Option("50g")

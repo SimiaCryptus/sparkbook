@@ -32,11 +32,11 @@ trait BaseRunner[T <: AnyRef] extends SerializableSupplier[T] {
   def nodeSettings: EC2NodeSettings
 
   def exe(args: String*): T = {
-    main(args.toArray)
+    _main(args.toArray)
     this.asInstanceOf
   }
 
-  def main(args: Array[String]): Unit = {
+  def _main(args: Array[String]): Unit = {
     val (node, _, _) = start()
     browse(node, 1080)
     join(node)

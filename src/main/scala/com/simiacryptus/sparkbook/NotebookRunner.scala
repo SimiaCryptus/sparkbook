@@ -19,18 +19,20 @@
 
 package com.simiacryptus.sparkbook
 
+import com.google.gson.{GsonBuilder, JsonObject, JsonPrimitive}
+
 import java.awt.image.BufferedImage
 import java.awt.{Graphics2D, RenderingHints}
 import java.io.{File, IOException, OutputStream}
 import java.util.UUID
-
 import com.simiacryptus.aws.TendrilSettings
 import com.simiacryptus.lang.{SerializableFunction, SerializableSupplier}
-import com.simiacryptus.notebook.{MarkdownNotebookOutput, NotebookOutput}
+import com.simiacryptus.notebook.{Jsonable, MarkdownNotebookOutput, NotebookOutput}
 import com.simiacryptus.sparkbook.util.Java8Util._
 import com.simiacryptus.sparkbook.util.Logging
 import com.simiacryptus.util.ReportingUtil
 import com.simiacryptus.util.io.GifSequenceWriter
+
 import javax.imageio.ImageIO
 import javax.imageio.stream.MemoryCacheImageOutputStream
 import org.apache.commons.io.IOUtils
@@ -172,8 +174,9 @@ object NotebookRunner {
 
 }
 
-trait NotebookRunner[T] extends SerializableSupplier[T] with SerializableFunction[NotebookOutput, T] with Logging {
-  override def get(): T = {
+trait NotebookRunner[R] extends SerializableSupplier[R] with SerializableFunction[NotebookOutput, R] with Logging {
+
+  override def get(): R = {
     try {
       val uuid = UUID.randomUUID()
       val log = new MarkdownNotebookOutput(

@@ -19,23 +19,20 @@
 
 package com.simiacryptus.sparkbook
 
-import java.io.File
-import java.net.URI
-import java.util.concurrent.{Executors, TimeUnit}
-import scala.language.postfixOps
-
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.identitymanagement.{AmazonIdentityManagement, AmazonIdentityManagementClientBuilder}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import com.simiacryptus.aws.exe.UserSettings
-import com.simiacryptus.aws.{EC2Util, _}
-import com.simiacryptus.sparkbook.util.Java8Util._
+import com.simiacryptus.aws.exe.{EmailUtil, UserSettings}
+import com.simiacryptus.aws._
 import com.simiacryptus.sparkbook.util.{Logging, ScalaJson}
 import com.simiacryptus.util.ReportingUtil
 import com.simiacryptus.util.test.SysOutInterceptor
 
+import java.io.File
+import java.net.URI
+import java.util.concurrent.{Executors, TimeUnit}
+import scala.language.postfixOps
 import scala.util.{Success, Try}
 
 object EC2Runner extends Logging {
@@ -67,12 +64,11 @@ object EC2Runner extends Logging {
   lazy val (envSettings, s3bucket, emailAddress) = {
     val envSettings = ScalaJson.cache(new File("ec2-settings." + EC2Util.REGION.toString + ".json"), classOf[AwsTendrilEnvSettings], () => EC2Util.setup(ec2, iam, s3))
     val load = UserSettings.load
-    SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.standard().withRegion(EC2Util.REGION).build(), load.getEmailAddress)
+    SESUtil.setup(EmailUtil.getSimpleEmailService, load.getEmailAddress)
     (envSettings, envSettings.bucket, load.getEmailAddress)
   }
 
   def join(node: EC2Util.EC2Node) = {
-    import com.simiacryptus.sparkbook.util.Java8Util._
     var currentCheck: Try[(String, Long)] = Success("running" -> com.simiacryptus.ref.wrappers.RefSystem.currentTimeMillis())
     val scheduledExecutorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setDaemon(true).build)
     val scheduledTask = scheduledExecutorService.scheduleAtFixedRate(() => {
@@ -132,29 +128,28 @@ object EC2Runner extends Logging {
 }
 
 trait EC2Runner[T <: AnyRef] extends BaseRunner[T] {
-  Tendril.getKryo.copy(this)
-  @transient protected lazy val envTuple = {
-    val envSettings = ScalaJson.cache(
-      new File("ec2-settings." + EC2Util.REGION.toString + ".json"),
-      classOf[AwsTendrilEnvSettings],
-      () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
-    (envSettings, envSettings.bucket, new Object() {
-      private lazy val str = Try {
-        val address = UserSettings.load.getEmailAddress
-        SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, address)
-        address
-      }
+  Tendril.getKryo.copy(this) // Test Kryo Copy
 
-      override def toString: String = str.getOrElse("")
-    })
-  }
+//  @transient protected lazy val envTuple: (AwsTendrilEnvSettings, String, ()=>String) = {
+//    val envSettings = ScalaJson.cache(
+//      new File("ec2-settings." + EC2Util.REGION.toString + ".json"),
+//      classOf[AwsTendrilEnvSettings],
+//      () => EC2Util.setup(EC2Runner.ec2, EC2Runner.iam, EC2Runner.s3))
+//    (envSettings, envSettings.bucket, ()=>{
+//      Try {
+//        val address = UserSettings.load.getEmailAddress
+//        SESUtil.setup(AmazonSimpleEmailServiceClientBuilder.defaultClient, address)
+//        address
+//      }.getOrElse("")
+//    })
+//  }
 
 
-  val s3bucket: String = envTuple._2
+  def s3bucket: String
 
-  @transient def envSettings: AwsTendrilEnvSettings = envTuple._1
+  final var emailAddress: String = ""
 
-  @transient def emailAddress: String = envTuple._3.toString
+  //@transient def envSettings: AwsTendrilEnvSettings = envTuple._1
 
   @transient override def runner: EC2RunnerLike = new DefaultEC2Runner
 

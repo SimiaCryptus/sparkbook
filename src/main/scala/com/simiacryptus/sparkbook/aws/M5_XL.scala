@@ -23,7 +23,7 @@ import com.simiacryptus.aws.exe.EC2NodeSettings
 import com.simiacryptus.sparkbook.aws.Const._
 import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2Runner}
 
-trait M5_XL extends EC2Runner[Object] with AWSNotebookRunner[Object] {
+trait M5_XL[R <: AnyRef, T <: AnyRef with AWSNotebookRunner[R, T]] extends EC2Runner[R] with AWSNotebookRunner[R, T] {
 
   override def nodeSettings: EC2NodeSettings = EC2NodeSettings.M5_XL
 

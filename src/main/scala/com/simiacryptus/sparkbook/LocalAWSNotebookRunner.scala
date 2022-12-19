@@ -17,20 +17,27 @@
  * under the License.
  */
 
-package com.simiacryptus.sparkbook.repl
+package com.simiacryptus.sparkbook
 
-import com.simiacryptus.aws.exe.EC2NodeSettings
+import com.google.gson.{GsonBuilder, JsonObject, JsonPrimitive}
 import com.simiacryptus.notebook.Jsonable
-import com.simiacryptus.sparkbook.{AWSNotebookRunner, EC2Runner}
+import com.simiacryptus.sparkbook.util.LocalRunner
 
-import java.net.URI
-import java.util.UUID
 
-object EC2Repl extends EC2Repl; class EC2Repl extends SimpleScalaRepl[EC2Repl] with EC2Runner[Object] with AWSNotebookRunner[Object, EC2Repl] with Jsonable[EC2Repl] {
-  //def s3home: URI = URI.create(s"s3://${s3bucket}/reports/" + UUID.randomUUID().toString + "/")
-  override var s3bucket: String = ""
+trait LocalAWSNotebookRunner[R,V<:LocalAWSNotebookRunner[R,V]] extends LocalRunner[R] with NotebookRunner[R] with Jsonable[V] {
 
-  override def nodeSettings: EC2NodeSettings = EC2NodeSettings.T2_L
+  var emailAddress : String = ""
+  def s3bucket : String
 
-  override def _main(args: Array[String]): Unit = super._main(args)
+  override def toJson: String = {
+    val json = super.toJson
+    val gson = new GsonBuilder().setPrettyPrinting().create()
+    val jsonObject = gson.fromJson(json, classOf[JsonObject])
+    jsonObject.add("emailAddress", new JsonPrimitive(emailAddress))
+    jsonObject.add("s3bucket", new JsonPrimitive(s3bucket.toString))
+    gson.toJson(jsonObject)
+  }
+
 }
+
+
